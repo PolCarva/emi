@@ -78,7 +78,7 @@ export default function ProfesorDashboard() {
             <div className="space-y-4">
               {alumnos.slice(0, 5).map((alumno) => (
                 <Link
-                  key={alumno.id}
+                  key={alumno.id || `alumno-${alumno.email}`}
                   href={`/profesor/alumnos/${alumno.id}`}
                   className="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 >

@@ -118,8 +118,10 @@ export default function EjerciciosPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {ejercicios && ejercicios.length > 0 ? (
-          ejercicios.map((ejercicio: any, index) => (
-            <div key={index} className="bg-white shadow rounded-lg p-4">
+          ejercicios.map((ejercicio: any, index) => {
+            const ejercicioId = ejercicio._id || ejercicio.id || `ejercicio-${index}`;
+            return (
+            <div key={ejercicioId} className="bg-white shadow rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-2">{ejercicio.nombre}</h3>
               <a
                 href={ejercicio.videoUrl}
@@ -132,7 +134,7 @@ export default function EjerciciosPage() {
               <button
                 onClick={() => {
                   if (confirm('¿Estás seguro de eliminar este ejercicio?')) {
-                    deleteMutation.mutate(ejercicio._id);
+                    deleteMutation.mutate(ejercicio._id || ejercicio.id);
                   }
                 }}
                 className="text-red-600 hover:text-red-700 text-sm"
@@ -140,7 +142,8 @@ export default function EjerciciosPage() {
                 Eliminar
               </button>
             </div>
-          ))
+          );
+          })
         ) : (
           <div className="col-span-full text-center py-12">
             <p className="text-gray-500">No tienes ejercicios guardados</p>

@@ -132,7 +132,7 @@ export default function AlumnosPage() {
         {alumnos && alumnos.length > 0 ? (
           <ul className="divide-y divide-gray-200">
             {alumnos.map((alumno) => (
-              <li key={alumno.id} className="p-6 hover:bg-gray-50 transition-colors">
+              <li key={alumno.id || `alumno-${alumno.email}`} className="p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center justify-between">
                   <Link href={`/profesor/alumnos/${alumno.id}`} className="flex-1">
                     <div className="flex items-center">
