@@ -128,7 +128,19 @@ const updateRutina = async (req, res) => {
       }));
     }
 
-    Object.assign(rutina, updates);
+    // Actualizar campos
+    Object.keys(updates).forEach(key => {
+      if (key !== 'dias') {
+        rutina[key] = updates[key];
+      }
+    });
+
+    // Si hay cambios en días, actualizar y marcar como modificado
+    if (updates.dias) {
+      rutina.dias = updates.dias;
+      rutina.markModified('dias');
+    }
+
     await rutina.save();
 
     res.json(rutina);

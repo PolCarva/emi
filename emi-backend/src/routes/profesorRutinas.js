@@ -27,7 +27,7 @@ const rutinaValidation = [
 // Rutas
 router.get('/:alumnoId', getRutinaByAlumno);
 router.post('/', rutinaValidation, createRutina);
-router.put('/:id', updateRutina);
+router.put('/:id', updateRutina); // Sin validación estricta para permitir actualizaciones parciales
 router.delete('/:id', deleteRutina);
 
 module.exports = router;

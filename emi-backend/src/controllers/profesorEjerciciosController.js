@@ -5,7 +5,18 @@ const Profesor = require('../models/Profesor');
 const getEjercicios = async (req, res) => {
   try {
     const profesor = await Profesor.findById(req.userId);
-    res.json(profesor.ejercicios);
+    
+    // Transformar _id a id en los ejercicios
+    const ejercicios = profesor.ejercicios.map(ej => {
+      const ejObj = ej.toObject();
+      if (ejObj._id) {
+        ejObj.id = ejObj._id.toString();
+        delete ejObj._id;
+      }
+      return ejObj;
+    });
+    
+    res.json(ejercicios);
   } catch (error) {
     console.error('Error al obtener ejercicios:', error);
     res.status(500).json({ error: 'Error al obtener ejercicios' });
@@ -29,10 +40,55 @@ const createEjercicio = async (req, res) => {
 
     const nuevoEjercicio = profesor.ejercicios[profesor.ejercicios.length - 1];
     
-    res.status(201).json(nuevoEjercicio);
+    // Transformar _id a id
+    const ejercicioJSON = nuevoEjercicio.toObject();
+    if (ejercicioJSON._id) {
+      ejercicioJSON.id = ejercicioJSON._id.toString();
+      delete ejercicioJSON._id;
+    }
+    
+    res.status(201).json(ejercicioJSON);
   } catch (error) {
     console.error('Error al crear ejercicio:', error);
     res.status(500).json({ error: 'Error al crear ejercicio' });
+  }
+};
+
+// Actualizar ejercicio
+const updateEjercicio = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { id } = req.params;
+    const { nombre, videoUrl } = req.body;
+
+    const profesor = await Profesor.findById(req.userId);
+    
+    const ejercicio = profesor.ejercicios.id(id);
+    
+    if (!ejercicio) {
+      return res.status(404).json({ error: 'Ejercicio no encontrado' });
+    }
+
+    ejercicio.nombre = nombre;
+    ejercicio.videoUrl = videoUrl;
+    
+    await profesor.save();
+
+    // Transformar _id a id
+    const ejercicioJSON = ejercicio.toObject();
+    if (ejercicioJSON._id) {
+      ejercicioJSON.id = ejercicioJSON._id.toString();
+      delete ejercicioJSON._id;
+    }
+    
+    res.json(ejercicioJSON);
+  } catch (error) {
+    console.error('Error al actualizar ejercicio:', error);
+    res.status(500).json({ error: 'Error al actualizar ejercicio' });
   }
 };
 
@@ -64,6 +120,7 @@ const deleteEjercicio = async (req, res) => {
 module.exports = {
   getEjercicios,
   createEjercicio,
+  updateEjercicio,
   deleteEjercicio
 };
 

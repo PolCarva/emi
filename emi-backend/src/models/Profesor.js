@@ -9,7 +9,7 @@ const ejercicioSchema = new mongoose.Schema({
     type: String,
     required: true
   }
-}, { _id: false });
+}, { _id: true }); // Permitir _id para poder editarlos y referenciarlos
 
 const profesorSchema = new mongoose.Schema({
   nombre: {
@@ -47,6 +47,18 @@ profesorSchema.methods.toJSON = function() {
   delete profesor.passwordHash;
   profesor.id = profesor._id.toString();
   delete profesor._id;
+  
+  // Transformar _id a id en los ejercicios
+  if (profesor.ejercicios && Array.isArray(profesor.ejercicios)) {
+    profesor.ejercicios = profesor.ejercicios.map(ej => {
+      if (ej._id) {
+        ej.id = ej._id.toString();
+        delete ej._id;
+      }
+      return ej;
+    });
+  }
+  
   return profesor;
 };
 

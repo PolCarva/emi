@@ -4,6 +4,7 @@ const { body } = require('express-validator');
 const {
   getEjercicios,
   createEjercicio,
+  updateEjercicio,
   deleteEjercicio
 } = require('../controllers/profesorEjerciciosController');
 const { authenticate, requireProfesor } = require('../middleware/auth');
@@ -20,6 +21,7 @@ const ejercicioValidation = [
 // Rutas
 router.get('/', getEjercicios);
 router.post('/', ejercicioValidation, createEjercicio);
+router.put('/:id', ejercicioValidation, updateEjercicio);
 router.delete('/:id', deleteEjercicio);
 
 module.exports = router;

@@ -52,15 +52,19 @@ const getRutinaSemana = async (req, res) => {
   }
 };
 
-// Actualizar peso de un ejercicio en la rutina
+// Actualizar peso de un ejercicio en la rutina para una semana/día específica
 const updateEjercicioPeso = async (req, res) => {
   try {
     const { diaIndex, bloqueIndex, ejercicioIndex } = req.params;
-    const { peso } = req.body;
+    const { peso, numeroSemana } = req.body;
 
     // Validar que peso sea un número válido
     if (peso !== null && peso !== undefined && (isNaN(peso) || peso < 0)) {
       return res.status(400).json({ error: 'El peso debe ser un número positivo o null' });
+    }
+
+    if (!numeroSemana || isNaN(numeroSemana)) {
+      return res.status(400).json({ error: 'El número de semana es requerido' });
     }
 
     const alumno = await Alumno.findById(req.userId);
@@ -78,6 +82,7 @@ const updateEjercicioPeso = async (req, res) => {
     const diaIdx = parseInt(diaIndex);
     const bloqueIdx = parseInt(bloqueIndex);
     const ejercicioIdx = parseInt(ejercicioIndex);
+    const semanaNum = parseInt(numeroSemana);
 
     // Validar índices
     if (!rutina.dias[diaIdx]) {
@@ -92,27 +97,42 @@ const updateEjercicioPeso = async (req, res) => {
       return res.status(400).json({ error: 'Ejercicio no encontrado' });
     }
 
-    // Actualizar peso del ejercicio
-    const ejercicio = rutina.dias[diaIdx].bloques[bloqueIdx].ejercicios[ejercicioIdx];
-    ejercicio.peso = peso === null || peso === undefined ? null : parseFloat(peso);
-    
-    // Calcular volumen automáticamente
-    if (ejercicio.peso !== null && ejercicio.peso !== undefined) {
-      ejercicio.volumen = ejercicio.series * ejercicio.repeticiones * ejercicio.peso;
-    } else {
-      ejercicio.volumen = 0;
+    // Crear clave única para semana/día/bloque/ejercicio
+    const clave = `${semanaNum}-${diaIdx}-${bloqueIdx}-${ejercicioIdx}`;
+
+    // Inicializar pesosPorSemana si no existe
+    if (!alumno.pesosPorSemana) {
+      alumno.pesosPorSemana = new Map();
+    } else if (!(alumno.pesosPorSemana instanceof Map)) {
+      // Si viene como objeto desde MongoDB, convertirlo a Map
+      const pesosObj = alumno.pesosPorSemana;
+      alumno.pesosPorSemana = new Map(Object.entries(pesosObj));
     }
 
-    // Marcar como modificado para que Mongoose guarde el cambio
-    rutina.markModified('dias');
+    // Guardar o eliminar el peso
+    if (peso === null || peso === undefined) {
+      alumno.pesosPorSemana.delete(clave);
+    } else {
+      alumno.pesosPorSemana.set(clave, parseFloat(peso));
+    }
+
+    // Marcar como modificado para que Mongoose guarde el cambio del Map
+    alumno.markModified('pesosPorSemana');
     
-    await rutina.save();
+    await alumno.save();
+
+    // Calcular volumen
+    const ejercicio = rutina.dias[diaIdx].bloques[bloqueIdx].ejercicios[ejercicioIdx];
+    const pesoFinal = peso === null || peso === undefined ? null : parseFloat(peso);
+    const volumen = pesoFinal !== null && pesoFinal !== undefined
+      ? ejercicio.series * ejercicio.repeticiones * pesoFinal
+      : 0;
 
     res.json({
       message: 'Peso actualizado correctamente',
       ejercicio: {
-        peso: ejercicio.peso,
-        volumen: ejercicio.volumen
+        peso: pesoFinal,
+        volumen: volumen
       }
     });
   } catch (error) {
@@ -121,9 +141,52 @@ const updateEjercicioPeso = async (req, res) => {
   }
 };
 
+// Obtener pesos de una semana específica
+const getPesosSemana = async (req, res) => {
+  try {
+    const { numeroSemana } = req.params;
+    const semanaNum = parseInt(numeroSemana);
+
+    const alumno = await Alumno.findById(req.userId);
+
+    if (!alumno.pesosPorSemana) {
+      return res.json({});
+    }
+
+    // Filtrar pesos de la semana específica
+    // Mongoose puede devolver el Map como objeto o como Map
+    const pesosSemana = {};
+    const pesos = alumno.pesosPorSemana;
+    
+    // Si es un Map, usar forEach; si es un objeto, usar Object.entries
+    if (pesos instanceof Map) {
+      pesos.forEach((peso, clave) => {
+        const partes = clave.split('-');
+        if (partes[0] === semanaNum.toString()) {
+          pesosSemana[clave] = peso;
+        }
+      });
+    } else {
+      // Si viene como objeto desde la BD
+      Object.entries(pesos).forEach(([clave, peso]) => {
+        const partes = clave.split('-');
+        if (partes[0] === semanaNum.toString()) {
+          pesosSemana[clave] = peso;
+        }
+      });
+    }
+
+    res.json(pesosSemana);
+  } catch (error) {
+    console.error('Error al obtener pesos de semana:', error);
+    res.status(500).json({ error: 'Error al obtener pesos de semana' });
+  }
+};
+
 module.exports = {
   getRutinaActual,
   getRutinaSemana,
-  updateEjercicioPeso
+  updateEjercicioPeso,
+  getPesosSemana
 };
 

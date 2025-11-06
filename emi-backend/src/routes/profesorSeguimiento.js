@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const {
   getSeguimientoAlumno,
-  getSeguimientoSemana
+  getSeguimientoSemana,
+  updatePesoAlumno
 } = require('../controllers/profesorSeguimientoController');
 const { authenticate, requireProfesor } = require('../middleware/auth');
 
@@ -12,6 +13,7 @@ router.use(authenticate, requireProfesor);
 // Rutas
 router.get('/:alumnoId', getSeguimientoAlumno);
 router.get('/:alumnoId/semana/:num', getSeguimientoSemana);
+router.put('/:alumnoId/ejercicio/:diaIndex/:bloqueIndex/:ejercicioIndex/peso', updatePesoAlumno);
 
 module.exports = router;
 
