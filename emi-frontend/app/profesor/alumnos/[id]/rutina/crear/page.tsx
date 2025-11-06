@@ -236,21 +236,21 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
   };
 
   return (
-    <div className="px-4 sm:px-0 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <Link href={`/profesor/alumnos/${id}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+    <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="mb-6 sm:mb-8">
+        <Link href={`/profesor/alumnos/${id}`} className="text-blue-600 hover:text-blue-700 mb-3 sm:mb-4 inline-block text-sm sm:text-base">
           ← Volver al alumno
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900">Crear Nueva Rutina</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Crear Nueva Rutina</h1>
         {alumno && (
-          <p className="mt-2 text-gray-600">Para {alumno.nombre}</p>
+          <p className="mt-2 text-sm sm:text-base text-gray-600">Para {alumno.nombre}</p>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Información básica */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Información Básica</h2>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Información Básica</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -339,33 +339,33 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Días de la rutina */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Días de la Rutina</h2>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Días de la Rutina</h2>
             <button
               type="button"
               onClick={agregarDia}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
             >
               + Agregar Día
             </button>
           </div>
 
           {dias.map((dia, diaIndex) => (
-            <div key={diaIndex} className="mb-6 border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-4">
+            <div key={diaIndex} className="mb-4 sm:mb-6 border border-gray-200 rounded-lg p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
                 <input
                   type="text"
                   value={dia.nombre}
                   onChange={(e) => actualizarNombreDia(diaIndex, e.target.value)}
-                  className="text-lg font-semibold text-gray-900 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="text-base sm:text-lg font-semibold text-gray-900 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
                   placeholder="Nombre del día"
                 />
                 {dias.length > 1 && (
                   <button
                     type="button"
                     onClick={() => eliminarDia(diaIndex)}
-                    className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                    className="px-3 py-1 text-xs sm:text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
                   >
                     Eliminar Día
                   </button>
@@ -375,20 +375,20 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
               {/* Bloques */}
               <div className="space-y-4">
                 {dia.bloques.map((bloque, bloqueIndex) => (
-                  <div key={bloqueIndex} className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
+                  <div key={bloqueIndex} className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
                       <input
                         type="text"
                         value={bloque.nombre}
                         onChange={(e) => actualizarNombreBloque(diaIndex, bloqueIndex, e.target.value)}
-                        className="font-medium text-gray-900 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="font-medium text-gray-900 px-2 py-1 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
                         placeholder="Nombre del bloque"
                       />
                       <div className="flex gap-2">
                         <button
                           type="button"
                           onClick={() => agregarEjercicio(diaIndex, bloqueIndex)}
-                          className="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                          className="flex-1 sm:flex-none px-3 py-1 text-xs sm:text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                         >
                           + Ejercicio
                         </button>
@@ -396,9 +396,9 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                           <button
                             type="button"
                             onClick={() => eliminarBloque(diaIndex, bloqueIndex)}
-                            className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                            className="flex-1 sm:flex-none px-3 py-1 text-xs sm:text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                           >
-                            Eliminar Bloque
+                            Eliminar
                           </button>
                         )}
                       </div>
@@ -407,9 +407,9 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                     {/* Ejercicios */}
                     <div className="space-y-3">
                       {bloque.ejercicios.map((ejercicio, ejercicioIndex) => (
-                        <div key={ejercicioIndex} className="bg-white rounded-md p-3 border border-gray-200">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-                            <div className="lg:col-span-2">
+                        <div key={ejercicioIndex} className="bg-white rounded-md p-2 sm:p-3 border border-gray-200">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
+                            <div className="sm:col-span-2 lg:col-span-2">
                               <label className="block text-xs font-medium text-gray-700 mb-1">
                                 Ejercicio *
                               </label>
@@ -471,16 +471,16 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                               />
                             </div>
                           </div>
-                          <div className="mt-2 flex items-center justify-between">
-                            <div className="text-xs text-gray-500">
-                              Peso inicial (opcional):
+                          <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="flex items-center text-xs text-gray-500">
+                              <span className="mr-2">Peso inicial (opcional):</span>
                               <input
                                 type="number"
                                 step="0.5"
                                 value={ejercicio.peso ?? ''}
                                 onChange={(e) => actualizarEjercicio(diaIndex, bloqueIndex, ejercicioIndex, 'peso', e.target.value === '' ? null : parseFloat(e.target.value))}
                                 min="0"
-                                className="ml-2 w-20 px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-20 px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="0"
                               />
                               <span className="ml-1">kg</span>
@@ -488,7 +488,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                             <button
                               type="button"
                               onClick={() => eliminarEjercicio(diaIndex, bloqueIndex, ejercicioIndex)}
-                              className="px-2 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                              className="px-2 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
                             >
                               Eliminar
                             </button>
@@ -517,17 +517,17 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Botones de acción */}
-        <div className="flex justify-end gap-4 pb-6">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pb-6">
           <Link
             href={`/profesor/alumnos/${id}`}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors text-center text-sm sm:text-base"
           >
             Cancelar
           </Link>
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
           >
             {createMutation.isPending ? 'Creando...' : 'Crear Rutina'}
           </button>

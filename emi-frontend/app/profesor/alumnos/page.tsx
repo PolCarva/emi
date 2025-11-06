@@ -64,14 +64,14 @@ export default function AlumnosPage() {
 
   return (
     <div className="px-4 sm:px-0">
-      <div className="mb-8 flex justify-between items-center">
+      <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Alumnos</h1>
-          <p className="mt-2 text-gray-600">Gestiona tus alumnos y sus rutinas</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Alumnos</h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600">Gestiona tus alumnos y sus rutinas</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
         >
           {showForm ? 'Cancelar' : 'Nuevo Alumno'}
         </button>
@@ -132,28 +132,28 @@ export default function AlumnosPage() {
         {alumnos && alumnos.length > 0 ? (
           <ul className="divide-y divide-gray-200">
             {alumnos.map((alumno) => (
-              <li key={alumno.id || `alumno-${alumno.email}`} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <Link href={`/profesor/alumnos/${alumno.id}`} className="flex-1">
+              <li key={alumno.id || `alumno-${alumno.email}`} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <Link href={`/profesor/alumnos/${alumno.id}`} className="flex-1 min-w-0">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <span className="text-blue-600 font-semibold">
+                        <span className="text-blue-600 font-semibold text-sm">
                           {alumno.nombre.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-900">{alumno.nombre}</p>
-                        <p className="text-sm text-gray-500">{alumno.email}</p>
+                      <div className="ml-3 sm:ml-4 min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">{alumno.nombre}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 truncate">{alumno.email}</p>
                       </div>
                     </div>
                   </Link>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
                     {alumno.rutinaActualId ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
                         Con rutina
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 whitespace-nowrap">
                         Sin rutina
                       </span>
                     )}
@@ -163,7 +163,7 @@ export default function AlumnosPage() {
                           deleteMutation.mutate(alumno.id);
                         }
                       }}
-                      className="text-red-600 hover:text-red-700 text-sm"
+                      className="text-red-600 hover:text-red-700 text-sm whitespace-nowrap"
                     >
                       Eliminar
                     </button>

@@ -153,6 +153,7 @@ export default function AlumnoRutinaPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rutina-alumno'] });
       queryClient.invalidateQueries({ queryKey: ['pesos-semana', semanaSeleccionada] });
+      queryClient.invalidateQueries({ queryKey: ['progreso-alumno'] }); // Invalidar historial también
     },
   });
 
@@ -331,20 +332,20 @@ export default function AlumnoRutinaPage() {
 
   return (
     <div className="px-4 sm:px-0">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{rutina.nombre}</h1>
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <p className="text-sm text-gray-500">Objetivo</p>
-            <p className="text-lg font-semibold text-gray-900">{rutina.objetivo}</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{rutina.nombre}</h1>
+        <div className="mt-3 sm:mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+          <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
+            <p className="text-xs sm:text-sm text-gray-500">Objetivo</p>
+            <p className="text-sm sm:text-lg font-semibold text-gray-900 break-words">{rutina.objetivo}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <p className="text-sm text-gray-500">Nivel</p>
-            <p className="text-lg font-semibold text-gray-900">{rutina.nivel}</p>
+          <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
+            <p className="text-xs sm:text-sm text-gray-500">Nivel</p>
+            <p className="text-sm sm:text-lg font-semibold text-gray-900">{rutina.nivel}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-500">Semana</p>
+              <p className="text-xs sm:text-sm text-gray-500">Semana</p>
               {semanaSeleccionada === calcularSemanaYDiaActual.semana && (
                 <span className="text-xs text-green-600 font-medium">Actual</span>
               )}
@@ -353,27 +354,27 @@ export default function AlumnoRutinaPage() {
               <button
                 onClick={irSemanaAnterior}
                 disabled={semanaSeleccionada <= 1}
-                className="px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-2 py-1 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 title="Semana anterior"
               >
                 ←
               </button>
-              <p className="text-lg font-semibold text-gray-900 flex-1 text-center">
+              <p className="text-sm sm:text-lg font-semibold text-gray-900 flex-1 text-center">
                 {semanaSeleccionada}
               </p>
               <button
                 onClick={irSemanaSiguiente}
-                className="px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                className="px-2 py-1 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 rounded transition-colors"
                 title="Semana siguiente"
               >
                 →
               </button>
             </div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div className="bg-white p-3 sm:p-4 rounded-lg shadow">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-500">Día</p>
-              {semanaSeleccionada === calcularSemanaYDiaActual.semana && 
+              <p className="text-xs sm:text-sm text-gray-500">Día</p>
+              {semanaSeleccionada === calcularSemanaYDiaActual.semana &&
                diaSeleccionado === calcularSemanaYDiaActual.dia && (
                 <span className="text-xs text-green-600 font-medium">Actual</span>
               )}
@@ -382,18 +383,18 @@ export default function AlumnoRutinaPage() {
               <button
                 onClick={irDiaAnterior}
                 disabled={diaSeleccionado === 0 && semanaSeleccionada === 1}
-                className="px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-2 py-1 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 title="Día anterior"
               >
                 ←
               </button>
-              <p className="text-lg font-semibold text-gray-900 flex-1 text-center">
+              <p className="text-sm sm:text-lg font-semibold text-gray-900 flex-1 text-center">
                 {diaSeleccionado + 1}
               </p>
               <button
                 onClick={irDiaSiguiente}
                 disabled={diaSeleccionado === rutina.dias.length - 1}
-                className="px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-2 py-1 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 title="Día siguiente"
               >
                 →
@@ -406,13 +407,13 @@ export default function AlumnoRutinaPage() {
       {/* Mostrar solo el día seleccionado */}
       {diaActual && (
         <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="bg-blue-600 px-6 py-4">
-            <h2 className="text-xl font-bold text-white">{diaActual.nombre}</h2>
-            <p className="text-blue-100 text-sm mt-1">
+          <div className="bg-blue-600 px-4 sm:px-6 py-3 sm:py-4">
+            <h2 className="text-lg sm:text-xl font-bold text-white">{diaActual.nombre}</h2>
+            <p className="text-blue-100 text-xs sm:text-sm mt-1">
               Semana {semanaSeleccionada} - Día {diaSeleccionado + 1} de {rutina.dias.length}
             </p>
           </div>
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             {diaActual.bloques.map((bloque, bloqueIndex) => (
               <div key={bloqueIndex}>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">{bloque.nombre}</h3>
@@ -429,21 +430,21 @@ export default function AlumnoRutinaPage() {
                     );
 
                     return (
-                      <div key={ejercicioIndex} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-medium text-gray-900">{ejercicio.nombre}</h4>
+                      <div key={ejercicioIndex} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2">
+                          <h4 className="font-medium text-gray-900 text-sm sm:text-base">{ejercicio.nombre}</h4>
                           {ejercicio.videoUrl && (
                             <a
                               href={ejercicio.videoUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:text-blue-700"
+                              className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 whitespace-nowrap"
                             >
                               Ver video
                             </a>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-xs sm:text-sm">
                           <div>
                             <span className="text-gray-500">Series:</span>
                             <span className="ml-2 font-medium">{ejercicio.series}</span>

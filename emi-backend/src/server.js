@@ -67,8 +67,40 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
   console.log(`Entorno: ${process.env.NODE_ENV}`);
+});
+
+// Manejo de errores del servidor
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`\n❌ Error: El puerto ${PORT} ya está en uso.`);
+    console.error(`Por favor, cierra el proceso que está usando el puerto ${PORT} o cambia el puerto en las variables de entorno.\n`);
+    console.error('Para encontrar y cerrar el proceso en Windows:');
+    console.error(`  netstat -ano | findstr :${PORT}`);
+    console.error(`  taskkill /PID <PID> /F\n`);
+    process.exit(1);
+  } else {
+    console.error('Error al iniciar el servidor:', error);
+    process.exit(1);
+  }
+});
+
+// Manejo de señales de cierre
+process.on('SIGTERM', () => {
+  console.log('SIGTERM recibido, cerrando servidor...');
+  server.close(() => {
+    console.log('Servidor cerrado correctamente');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('\nSIGINT recibido, cerrando servidor...');
+  server.close(() => {
+    console.log('Servidor cerrado correctamente');
+    process.exit(0);
+  });
 });
 

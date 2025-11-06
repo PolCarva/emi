@@ -259,38 +259,38 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="px-4 sm:px-0">
-      <div className="mb-8">
-        <Link href={`/profesor/alumnos/${id}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+      <div className="mb-6 sm:mb-8">
+        <Link href={`/profesor/alumnos/${id}`} className="text-blue-600 hover:text-blue-700 mb-3 sm:mb-4 inline-block text-sm sm:text-base">
           ← Volver al alumno
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
           Seguimiento {alumno && `- ${alumno.nombre}`}
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-sm sm:text-base text-gray-600">
           Visualiza y edita los pesos del alumno por semana y día
         </p>
       </div>
 
       {/* Selector de semana */}
-      <div className="mb-6 bg-white shadow rounded-lg p-4">
-        <div className="flex items-center justify-between">
+      <div className="mb-4 sm:mb-6 bg-white shadow rounded-lg p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-2">
           <button
             onClick={() => setSemanaSeleccionada(Math.max(primeraSemana, semanaSeleccionada - 1))}
             disabled={semanaSeleccionada <= primeraSemana}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            <span className="hidden md:inline">Anterior</span>
+            <span className="hidden sm:inline">Anterior</span>
           </button>
 
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-gray-900">
+          <div className="flex items-center gap-2 sm:gap-4 flex-1 justify-center">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">
               Semana {semanaSeleccionada}
             </h2>
             {semanaSeleccionada === ultimaSemana && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 Actual
               </span>
             )}
@@ -299,10 +299,10 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
           <button
             onClick={() => setSemanaSeleccionada(Math.min(ultimaSemana, semanaSeleccionada + 1))}
             disabled={semanaSeleccionada >= ultimaSemana}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="px-2 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
           >
-            <span className="hidden md:inline">Siguiente</span>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span className="hidden sm:inline">Siguiente</span>
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
@@ -323,7 +323,7 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
                   </h2>
                 </div>
                 
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   {/* Mostrar TODA la rutina con posibilidad de editar pesos */}
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -332,15 +332,15 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
                     <div className="space-y-4">
                       {rutina.dias.map((dia: any, diaIndex: number) => {
                         return (
-                          <div key={diaIndex} className="border border-gray-200 rounded-lg p-4">
-                            <h4 className="font-medium text-gray-900 mb-3">
+                          <div key={diaIndex} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                            <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">
                               {dia.nombre} (Día {diaIndex + 1})
                             </h4>
                             <div className="space-y-4">
                               {dia.bloques.map((bloque: any, bloqueIndex: number) => {
                                 return (
-                                  <div key={bloqueIndex} className="ml-4 border-l-2 border-blue-200 pl-4">
-                                    <h5 className="text-sm font-medium text-gray-700 mb-2">
+                                  <div key={bloqueIndex} className="ml-0 sm:ml-4 border-l-0 sm:border-l-2 border-blue-200 pl-0 sm:pl-4">
+                                    <h5 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">
                                       {bloque.nombre}
                                     </h5>
                                     <div className="space-y-2">
@@ -351,8 +351,8 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
                                         const isUpdating = updatingPeso[key] || false;
 
                                         return (
-                                          <div key={ejercicioIndex} className="bg-gray-50 rounded p-3 text-sm">
-                                            <div className="flex justify-between items-start mb-2">
+                                          <div key={ejercicioIndex} className="bg-gray-50 rounded p-2 sm:p-3 text-xs sm:text-sm">
+                                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-1">
                                               <span className="font-medium text-gray-900">
                                                 {ejercicio.nombre}
                                               </span>
@@ -360,7 +360,7 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
                                                 {ejercicio.series} series × {ejercicio.repeticiones} reps
                                               </span>
                                             </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-2">
                                               <div>
                                                 <label className="text-gray-500 text-xs">Peso (kg):</label>
                                                 <div className="flex items-center gap-2 mt-1">
@@ -373,7 +373,7 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
                                                       const value = e.target.value === '' ? null : parseFloat(e.target.value);
                                                       handlePesoChange(diaIndex, bloqueIndex, ejercicioIndex, value, numeroSemana);
                                                     }}
-                                                    className="w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    className="w-full sm:w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     placeholder="Sin definir"
                                                   />
                                                   <span className="text-gray-500 text-xs">kg</span>
@@ -408,25 +408,25 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
 
                   {/* Mostrar historial de progreso registrado por ejercicio */}
                   {Object.keys(historialPorEjercicio).length > 0 && (
-                    <div className="border-t border-gray-200 pt-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <div className="border-t border-gray-200 pt-4 sm:pt-6">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                         Progreso Registrado (Historial) - Evolución por Ejercicio
                       </h3>
                       <div className="space-y-4">
                         {Object.entries(historialPorEjercicio)
                           .sort((a, b) => a[0].localeCompare(b[0])) // Ordenar por nombre del ejercicio
                           .map(([ejercicioId, registros]) => (
-                            <div key={ejercicioId} className="border border-gray-200 rounded-lg p-4">
-                              <h4 className="font-medium text-gray-900 mb-3">
+                            <div key={ejercicioId} className="border border-gray-200 rounded-lg p-3 sm:p-4">
+                              <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">
                                 {ejercicioId}
                               </h4>
                               <div className="space-y-2">
                                 {registros
                                   .sort((a, b) => a.semana - b.semana) // Ordenar por semana
                                   .map((registro, index) => (
-                                    <div key={index} className="bg-gray-50 rounded p-3 text-sm">
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
+                                    <div key={index} className="bg-gray-50 rounded p-2 sm:p-3 text-xs sm:text-sm">
+                                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                                           <span className="font-medium text-blue-600">
                                             Semana {registro.semana}
                                           </span>
@@ -437,7 +437,7 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
                                             })}
                                           </span>
                                         </div>
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                                           <div>
                                             <span className="text-gray-500 text-xs">Peso:</span>
                                             <span className="ml-2 font-semibold text-blue-600">

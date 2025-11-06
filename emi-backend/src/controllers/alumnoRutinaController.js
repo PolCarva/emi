@@ -116,14 +116,82 @@ const updateEjercicioPeso = async (req, res) => {
       alumno.pesosPorSemana.set(clave, parseFloat(peso));
     }
 
-    // Marcar como modificado para que Mongoose guarde el cambio del Map
+    // Actualizar historialSemanas automáticamente
+    const pesoFinal = peso === null || peso === undefined ? null : parseFloat(peso);
+    
+    // Buscar o crear la semana en historialSemanas
+    let semanaHistorial = alumno.historialSemanas.find(s => s.numeroSemana === semanaNum);
+    
+    if (!semanaHistorial) {
+      // Crear nueva semana si no existe
+      semanaHistorial = {
+        numeroSemana: semanaNum,
+        dias: []
+      };
+      alumno.historialSemanas.push(semanaHistorial);
+    }
+    
+    // Obtener información del ejercicio de la rutina
+    const ejercicio = rutina.dias[diaIdx].bloques[bloqueIdx].ejercicios[ejercicioIdx];
+    const ejercicioId = ejercicio.nombre; // Usar el nombre como ID para el historial
+    const repeticionesReal = ejercicio.repeticiones;
+    const volumenReal = pesoFinal !== null && pesoFinal !== undefined
+      ? ejercicio.series * ejercicio.repeticiones * pesoFinal
+      : 0;
+    
+    // Obtener la fecha del día actual (o crear una fecha para este día de la semana)
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    // Buscar o crear el día en la semana
+    let diaHistorial = semanaHistorial.dias.find(d => {
+      const fechaDia = new Date(d.fecha);
+      fechaDia.setHours(0, 0, 0, 0);
+      return fechaDia.getTime() === hoy.getTime();
+    });
+    
+    if (!diaHistorial) {
+      // Crear nuevo día si no existe
+      diaHistorial = {
+        fecha: hoy,
+        observaciones: '',
+        ejercicios: []
+      };
+      semanaHistorial.dias.push(diaHistorial);
+    }
+    
+    // Buscar o crear/actualizar el ejercicio en el día
+    const ejercicioHistorialIndex = diaHistorial.ejercicios.findIndex(
+      e => e.ejercicioId === ejercicioId
+    );
+    
+    if (ejercicioHistorialIndex !== -1) {
+      // Actualizar ejercicio existente
+      diaHistorial.ejercicios[ejercicioHistorialIndex] = {
+        ejercicioId: ejercicioId,
+        pesoReal: pesoFinal || 0,
+        repeticionesReal: repeticionesReal,
+        volumenReal: volumenReal
+      };
+    } else {
+      // Agregar nuevo ejercicio solo si hay peso
+      if (pesoFinal !== null && pesoFinal !== undefined) {
+        diaHistorial.ejercicios.push({
+          ejercicioId: ejercicioId,
+          pesoReal: pesoFinal,
+          repeticionesReal: repeticionesReal,
+          volumenReal: volumenReal
+        });
+      }
+    }
+
+    // Marcar como modificado para que Mongoose guarde los cambios
     alumno.markModified('pesosPorSemana');
+    alumno.markModified('historialSemanas');
     
     await alumno.save();
 
-    // Calcular volumen
-    const ejercicio = rutina.dias[diaIdx].bloques[bloqueIdx].ejercicios[ejercicioIdx];
-    const pesoFinal = peso === null || peso === undefined ? null : parseFloat(peso);
+    // Calcular volumen (ya tenemos ejercicio y pesoFinal definidos arriba)
     const volumen = pesoFinal !== null && pesoFinal !== undefined
       ? ejercicio.series * ejercicio.repeticiones * pesoFinal
       : 0;

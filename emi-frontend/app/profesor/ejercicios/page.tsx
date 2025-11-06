@@ -110,15 +110,15 @@ export default function EjerciciosPage() {
 
   return (
     <div className="px-4 sm:px-0">
-      <div className="mb-8 flex justify-between items-center">
+      <div className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Ejercicios</h1>
-          <p className="mt-2 text-gray-600">Tu biblioteca personal de ejercicios</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Ejercicios</h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600">Tu biblioteca personal de ejercicios</p>
         </div>
         {!showForm && (
           <button
             onClick={() => setShowForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
           >
             Nuevo Ejercicio
           </button>

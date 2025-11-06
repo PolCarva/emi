@@ -52,17 +52,17 @@ export default function AlumnoDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="px-4 sm:px-0">
-      <div className="mb-8">
-        <Link href="/profesor/alumnos" className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+      <div className="mb-6 sm:mb-8">
+        <Link href="/profesor/alumnos" className="text-blue-600 hover:text-blue-700 mb-3 sm:mb-4 inline-block text-sm sm:text-base">
           ← Volver a alumnos
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900">{alumno.nombre}</h1>
-        <p className="mt-2 text-gray-600">{alumno.email}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{alumno.nombre}</h1>
+        <p className="mt-2 text-sm sm:text-base text-gray-600">{alumno.email}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Información</h2>
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-4">Información</h2>
           <dl className="space-y-2">
             <div>
               <dt className="text-sm font-medium text-gray-500">ID</dt>
@@ -85,8 +85,8 @@ export default function AlumnoDetailPage({ params }: { params: Promise<{ id: str
           </dl>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Acciones</h2>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-4">Acciones</h2>
           <div className="space-y-2">
             {alumno.rutinaActualId ? (
               <Link
@@ -114,8 +114,8 @@ export default function AlumnoDetailPage({ params }: { params: Promise<{ id: str
       </div>
 
       {rutina && (
-        <div className="mt-6 bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Rutina Actual</h2>
+        <div className="mt-4 sm:mt-6 bg-white shadow rounded-lg p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-4">Rutina Actual</h2>
           <div className="space-y-2">
             <p><span className="font-medium">Nombre:</span> {rutina.nombre}</p>
             <p><span className="font-medium">Objetivo:</span> {rutina.objetivo}</p>
@@ -126,8 +126,8 @@ export default function AlumnoDetailPage({ params }: { params: Promise<{ id: str
       )}
 
       {seguimiento && seguimiento.historialSemanas && seguimiento.historialSemanas.length > 0 && (
-        <div className="mt-6 bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Progreso Reciente</h2>
+        <div className="mt-4 sm:mt-6 bg-white shadow rounded-lg p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-4">Progreso Reciente</h2>
           <p className="text-sm text-gray-600">
             Semanas registradas: {seguimiento.historialSemanas.length}
           </p>

@@ -316,20 +316,20 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="px-4 sm:px-0">
-      <div className="mb-8">
-        <Link href={`/profesor/alumnos/${id}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block">
+      <div className="mb-6 sm:mb-8">
+        <Link href={`/profesor/alumnos/${id}`} className="text-blue-600 hover:text-blue-700 mb-3 sm:mb-4 inline-block text-sm sm:text-base">
           ← Volver al alumno
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900">Editar Rutina</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Editar Rutina</h1>
+        <p className="mt-2 text-xs sm:text-sm text-gray-600">
           Selecciona ejercicios de tu biblioteca y ajusta series, repeticiones y peso
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {/* Información General */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Información General</h2>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-4">Información General</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la rutina</label>
@@ -389,9 +389,9 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Días de Entrenamiento */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Días de Entrenamiento</h2>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4">
+            <h2 className="text-base sm:text-lg font-medium text-gray-900">Días de Entrenamiento</h2>
             <button
               type="button"
               onClick={agregarDia}
@@ -682,17 +682,17 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Botones de acción */}
-        <div className="flex justify-end space-x-4">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
           <Link
             href={`/profesor/alumnos/${id}`}
-            className="bg-gray-100 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-200 transition-colors"
+            className="bg-gray-100 text-gray-700 px-4 sm:px-6 py-2 rounded-md hover:bg-gray-200 transition-colors text-center text-sm sm:text-base"
           >
             Cancelar
           </Link>
           <button
             type="submit"
             disabled={updateMutation.isPending}
-            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors text-sm sm:text-base"
           >
             {updateMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
           </button>

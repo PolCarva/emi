@@ -82,6 +82,16 @@ const createRutina = async (req, res) => {
 
     // Actualizar referencia en el alumno
     alumno.rutinaActualId = rutina._id;
+    
+    // Inicializar semana 1 en historialSemanas si no existe
+    const semana1Existente = alumno.historialSemanas.find(s => s.numeroSemana === 1);
+    if (!semana1Existente) {
+      alumno.historialSemanas.push({
+        numeroSemana: 1,
+        dias: []
+      });
+    }
+    
     await alumno.save();
 
     res.status(201).json(rutina);
