@@ -7,7 +7,8 @@ const ejercicioRutinaSchema = new mongoose.Schema({
   },
   videoUrl: {
     type: String,
-    required: true
+    required: false,
+    default: null
   },
   series: {
     type: Number,

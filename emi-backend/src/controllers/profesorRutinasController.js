@@ -57,6 +57,7 @@ const createRutina = async (req, res) => {
         ...bloque,
         ejercicios: bloque.ejercicios.map(ejercicio => ({
           ...ejercicio,
+          videoUrl: ejercicio.videoUrl || null,
           peso: ejercicio.peso === null || ejercicio.peso === undefined ? null : ejercicio.peso,
           volumen: ejercicio.peso !== null && ejercicio.peso !== undefined
             ? ejercicio.series * ejercicio.repeticiones * ejercicio.peso
