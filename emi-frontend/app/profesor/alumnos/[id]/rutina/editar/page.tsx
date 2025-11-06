@@ -12,7 +12,7 @@ interface EjercicioProfesor {
   _id?: string;
   id?: string;
   nombre: string;
-  videoUrl: string;
+  videoUrl?: string | null;
 }
 
 export default function EditarRutinaPage({ params }: { params: Promise<{ id: string }> }) {
@@ -507,14 +507,16 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
                                       <p className="text-xs text-gray-500">
                                         {ejercicioActual ? 'Ejercicio seleccionado' : '⚠️ Ejercicio no encontrado en tu biblioteca'}
                                       </p>
-                                      <a
-                                        href={ejercicio.videoUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs text-blue-600 hover:text-blue-700"
-                                      >
-                                        Ver video →
-                                      </a>
+                                      {ejercicio.videoUrl && (
+                                        <a
+                                          href={ejercicio.videoUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-blue-600 hover:text-blue-700"
+                                        >
+                                          Ver video →
+                                        </a>
+                                      )}
                                     </div>
                                   )}
                                 </div>

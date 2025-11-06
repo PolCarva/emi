@@ -43,7 +43,7 @@ export interface Bloque {
 
 export interface Ejercicio {
   nombre: string;
-  videoUrl: string;
+  videoUrl: string | null;
   series: number;
   repeticiones: number;
   peso: number | null;

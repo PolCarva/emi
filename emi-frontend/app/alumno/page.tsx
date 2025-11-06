@@ -432,14 +432,16 @@ export default function AlumnoRutinaPage() {
                       <div key={ejercicioIndex} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-medium text-gray-900">{ejercicio.nombre}</h4>
-                          <a
-                            href={ejercicio.videoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:text-blue-700"
-                          >
-                            Ver video
-                          </a>
+                          {ejercicio.videoUrl && (
+                            <a
+                              href={ejercicio.videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:text-blue-700"
+                            >
+                              Ver video
+                            </a>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                           <div>

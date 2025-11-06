@@ -15,7 +15,10 @@ router.use(authenticate, requireProfesor);
 // Validaciones
 const ejercicioValidation = [
   body('nombre').trim().notEmpty().withMessage('El nombre es requerido'),
-  body('videoUrl').isURL().withMessage('La URL del video debe ser válida')
+  body('videoUrl')
+    .optional({ nullable: true, checkFalsy: true })
+    .isURL()
+    .withMessage('La URL del video debe ser válida')
 ];
 
 // Rutas

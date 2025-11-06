@@ -35,7 +35,10 @@ const createEjercicio = async (req, res) => {
 
     const profesor = await Profesor.findById(req.userId);
     
-    profesor.ejercicios.push({ nombre, videoUrl });
+    profesor.ejercicios.push({ 
+      nombre, 
+      videoUrl: videoUrl || null 
+    });
     await profesor.save();
 
     const nuevoEjercicio = profesor.ejercicios[profesor.ejercicios.length - 1];
@@ -74,7 +77,7 @@ const updateEjercicio = async (req, res) => {
     }
 
     ejercicio.nombre = nombre;
-    ejercicio.videoUrl = videoUrl;
+    ejercicio.videoUrl = videoUrl || null;
     
     await profesor.save();
 

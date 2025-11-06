@@ -8,7 +8,7 @@ interface EjercicioProfesor {
   _id?: string;
   id?: string;
   nombre: string;
-  videoUrl: string;
+  videoUrl?: string | null;
 }
 
 export default function EjerciciosPage() {
@@ -28,7 +28,7 @@ export default function EjerciciosPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: { nombre: string; videoUrl: string }) => {
+    mutationFn: async (data: { nombre: string; videoUrl?: string | null }) => {
       return await api.post('/api/profesor/ejercicios', data);
     },
     onSuccess: () => {
@@ -44,7 +44,7 @@ export default function EjerciciosPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { nombre: string; videoUrl: string } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: { nombre: string; videoUrl?: string | null } }) => {
       return await api.put(`/api/profesor/ejercicios/${id}`, data);
     },
     onSuccess: () => {
@@ -88,13 +88,15 @@ export default function EjerciciosPage() {
     e.preventDefault();
     setError('');
     
+    const videoUrlFinal = videoUrl.trim() || null;
+    
     if (editingEjercicio) {
       const id = editingEjercicio._id || editingEjercicio.id;
       if (id) {
-        updateMutation.mutate({ id, data: { nombre, videoUrl } });
+        updateMutation.mutate({ id, data: { nombre, videoUrl: videoUrlFinal } });
       }
     } else {
-      createMutation.mutate({ nombre, videoUrl });
+      createMutation.mutate({ nombre, videoUrl: videoUrlFinal });
     }
   };
 
@@ -146,12 +148,13 @@ export default function EjerciciosPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL del video</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                URL del video (opcional)
+              </label>
               <input
                 type="url"
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="https://youtube.com/..."
               />
@@ -187,14 +190,16 @@ export default function EjerciciosPage() {
             return (
               <div key={ejercicioId} className="bg-white shadow rounded-lg p-4">
                 <h3 className="font-medium text-gray-900 mb-2">{ejercicio.nombre}</h3>
-                <a
-                  href={ejercicio.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 hover:text-blue-700 block mb-3"
-                >
-                  Ver video
-                </a>
+                {ejercicio.videoUrl && (
+                  <a
+                    href={ejercicio.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:text-blue-700 block mb-3"
+                  >
+                    Ver video
+                  </a>
+                )}
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handleEdit(ejercicio)}

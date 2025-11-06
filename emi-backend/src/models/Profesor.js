@@ -7,7 +7,8 @@ const ejercicioSchema = new mongoose.Schema({
   },
   videoUrl: {
     type: String,
-    required: true
+    required: false,
+    default: null
   }
 }, { _id: true }); // Permitir _id para poder editarlos y referenciarlos
 
