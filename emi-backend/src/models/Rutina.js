@@ -111,5 +111,22 @@ ejercicioRutinaSchema.methods.calcularVolumen = function() {
   return 0;
 };
 
+// Transformar _id a id en las respuestas JSON
+rutinaSchema.methods.toJSON = function() {
+  const rutina = this.toObject();
+  rutina.id = rutina._id.toString();
+  delete rutina._id;
+  
+  // También transformar los IDs de referencias
+  if (rutina.alumnoId) {
+    rutina.alumnoId = rutina.alumnoId.toString();
+  }
+  if (rutina.profesorId) {
+    rutina.profesorId = rutina.profesorId.toString();
+  }
+  
+  return rutina;
+};
+
 module.exports = mongoose.model('Rutina', rutinaSchema);
 

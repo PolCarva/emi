@@ -1,4 +1,4 @@
-# 🏋️ Plataforma Web de Gestión de Rutinas - Emi
+# 🏋️ Plataforma Web de Gestión de Rutinas - EMI (Entrena Más Inteligente)
 
 Aplicación web completa para la gestión de rutinas de entrenamiento entre profesores y alumnos.
 

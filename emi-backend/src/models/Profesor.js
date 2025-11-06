@@ -41,10 +41,12 @@ const profesorSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// No devolver el passwordHash en las consultas por defecto
+// No devolver el passwordHash en las consultas por defecto y transformar _id a id
 profesorSchema.methods.toJSON = function() {
   const profesor = this.toObject();
   delete profesor.passwordHash;
+  profesor.id = profesor._id.toString();
+  delete profesor._id;
   return profesor;
 };
 
