@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import type { SemanaProgreso } from '@/types';
 
 export default function ProgresoPage() {
   const [numeroSemana, setNumeroSemana] = useState(1);
@@ -15,7 +16,7 @@ export default function ProgresoPage() {
   const [success, setSuccess] = useState('');
   const queryClient = useQueryClient();
 
-  const { data: progreso } = useQuery({
+  const { data: progreso } = useQuery<SemanaProgreso[]>({
     queryKey: ['progreso-alumno'],
     queryFn: async () => {
       const response = await api.get('/api/alumno/progreso');
@@ -221,7 +222,7 @@ export default function ProgresoPage() {
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Historial Reciente</h2>
           <div className="space-y-4">
-            {progreso.slice(0, 3).map((semana, index: number) => (
+            {progreso.slice(0, 3).map((semana: SemanaProgreso, index: number) => (
               <div key={index} className="border-l-4 border-blue-500 pl-4">
                 <p className="font-medium text-gray-900">Semana {semana.numeroSemana}</p>
                 <p className="text-sm text-gray-600">{semana.dias.length} días registrados</p>
