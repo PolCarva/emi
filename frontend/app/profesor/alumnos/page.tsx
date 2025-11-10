@@ -34,8 +34,8 @@ export default function AlumnosPage() {
       setPassword('');
       setError('');
     },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || 'Error al crear alumno');
+    onError: (err: unknown) => {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al crear alumno');
     },
   });
 

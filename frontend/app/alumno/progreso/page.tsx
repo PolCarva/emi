@@ -23,8 +23,15 @@ export default function ProgresoPage() {
     },
   });
 
+  interface ProgresoData {
+    numeroSemana: number;
+    fecha: string;
+    observaciones: string;
+    ejercicios: Array<{ ejercicioId: string; pesoReal: number; repeticionesReal: number }>;
+  }
+
   const registrarMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: ProgresoData) => {
       return await api.post('/api/alumno/progreso', data);
     },
     onSuccess: () => {
@@ -35,8 +42,8 @@ export default function ProgresoPage() {
       setEjercicios([{ ejercicioId: '', pesoReal: 0, repeticionesReal: 0 }]);
       setTimeout(() => setSuccess(''), 3000);
     },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || 'Error al registrar progreso');
+    onError: (err: unknown) => {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al registrar progreso');
       setSuccess('');
     },
   });
@@ -45,9 +52,9 @@ export default function ProgresoPage() {
     setEjercicios([...ejercicios, { ejercicioId: '', pesoReal: 0, repeticionesReal: 0 }]);
   };
 
-  const actualizarEjercicio = (index: number, field: string, value: any) => {
+  const actualizarEjercicio = (index: number, field: 'ejercicioId' | 'pesoReal' | 'repeticionesReal', value: string | number) => {
     const nuevosEjercicios = [...ejercicios];
-    (nuevosEjercicios[index] as any)[field] = value;
+    nuevosEjercicios[index] = { ...nuevosEjercicios[index], [field]: value };
     setEjercicios(nuevosEjercicios);
   };
 
@@ -214,7 +221,7 @@ export default function ProgresoPage() {
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Historial Reciente</h2>
           <div className="space-y-4">
-            {progreso.slice(0, 3).map((semana: any, index: number) => (
+            {progreso.slice(0, 3).map((semana, index: number) => (
               <div key={index} className="border-l-4 border-blue-500 pl-4">
                 <p className="font-medium text-gray-900">Semana {semana.numeroSemana}</p>
                 <p className="text-sm text-gray-600">{semana.dias.length} días registrados</p>

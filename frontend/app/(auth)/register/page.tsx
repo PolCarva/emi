@@ -35,8 +35,8 @@ export default function RegisterPage() {
         password,
         invitationCode,
       });
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message || 'Error al registrar');
     } finally {
       setIsLoading(false);
     }

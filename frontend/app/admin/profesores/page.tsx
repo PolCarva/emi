@@ -20,8 +20,8 @@ export default function ProfesoresPage() {
       setLoading(true);
       const response = await api.get('/api/admin/profesores');
       setProfesores(response.data.profesores);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al cargar profesores');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al cargar profesores');
     } finally {
       setLoading(false);
     }

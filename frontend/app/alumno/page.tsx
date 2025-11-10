@@ -118,10 +118,13 @@ export default function AlumnoRutinaPage() {
   // Actualizar semana y día seleccionados cuando se calcula la actual
   useEffect(() => {
     if (calcularSemanaYDiaActual.semana && semanaSeleccionada === 1 && diaSeleccionado === 0) {
-      setSemanaSeleccionada(calcularSemanaYDiaActual.semana);
-      setDiaSeleccionado(calcularSemanaYDiaActual.dia);
+      // Usar setTimeout para evitar setState síncrono en effect
+      setTimeout(() => {
+        setSemanaSeleccionada(calcularSemanaYDiaActual.semana);
+        setDiaSeleccionado(calcularSemanaYDiaActual.dia);
+      }, 0);
     }
-  }, [calcularSemanaYDiaActual]);
+  }, [calcularSemanaYDiaActual, semanaSeleccionada, diaSeleccionado]);
 
   const updatePesoMutation = useMutation({
     mutationFn: async ({ 
@@ -188,8 +191,9 @@ export default function AlumnoRutinaPage() {
 
   // Limpiar timers al desmontar
   useEffect(() => {
+    const timers = debounceTimers.current;
     return () => {
-      Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer));
+      Object.values(timers).forEach(timer => clearTimeout(timer));
     };
   }, []);
 
@@ -420,7 +424,6 @@ export default function AlumnoRutinaPage() {
                 <div className="space-y-4">
                   {bloque.ejercicios.map((ejercicio, ejercicioIndex) => {
                     const key = `${diaSeleccionado}-${bloqueIndex}-${ejercicioIndex}`;
-                    const isUpdating = updatingPeso[key] || false;
                     // Obtener peso de la semana/día actual (sin fallback a rutina)
                     const pesoEjercicio = obtenerPesoEjercicio(diaSeleccionado, bloqueIndex, ejercicioIndex);
                     const volumenCalculado = calcularVolumen(

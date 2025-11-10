@@ -23,12 +23,13 @@ export default function Home() {
           // Usuario no autenticado, verificar si hay admins
           setCheckingAdmins(true);
           try {
-            const response = await api.get('/api/admin/dashboard');
+            await api.get('/api/admin/dashboard');
             // Si hay respuesta, significa que hay admins
             router.push('/login');
-          } catch (error: any) {
+          } catch (error: unknown) {
             // Si no hay respuesta o es error 403, significa que no hay admins
-            if (error.response?.status === 403 || error.response?.status === 401) {
+            const status = (error as { response?: { status?: number } })?.response?.status;
+            if (status === 403 || status === 401) {
               router.push('/create-first-admin');
             } else {
               router.push('/login');

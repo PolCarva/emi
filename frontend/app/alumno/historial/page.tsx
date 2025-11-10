@@ -73,9 +73,12 @@ export default function HistorialPage() {
   // Actualizar semana seleccionada cuando se calcula la semana actual
   useEffect(() => {
     if (calcularSemanaActual && semanaSeleccionada === 1) {
-      setSemanaSeleccionada(calcularSemanaActual);
+      // Usar setTimeout para evitar setState síncrono en effect
+      setTimeout(() => {
+        setSemanaSeleccionada(calcularSemanaActual);
+      }, 0);
     }
-  }, [calcularSemanaActual]);
+  }, [calcularSemanaActual, semanaSeleccionada]);
 
   // Obtener la semana actual para mostrar
   const semanaActual = useMemo(() => {
