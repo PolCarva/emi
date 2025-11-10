@@ -127,7 +127,7 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     newEjercicios[ejercicioIndex] = {
       ...newEjercicios[ejercicioIndex],
       nombre: ejercicioSeleccionado.nombre,
-      videoUrl: ejercicioSeleccionado.videoUrl,
+      videoUrl: ejercicioSeleccionado.videoUrl ?? null,
       // Mantener series, repeticiones, peso y pausa existentes
     };
     
@@ -203,7 +203,7 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     
     newBloques[bloqueIndex].ejercicios.push({
       nombre: primerEjercicio?.nombre || '',
-      videoUrl: primerEjercicio?.videoUrl || '',
+      videoUrl: primerEjercicio?.videoUrl ?? null,
       series: 3,
       repeticiones: 10,
       peso: null,
