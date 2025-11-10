@@ -71,7 +71,7 @@ export default function EjerciciosPage() {
   const handleEdit = (ejercicio: EjercicioProfesor) => {
     setEditingEjercicio(ejercicio);
     setNombre(ejercicio.nombre);
-    setVideoUrl(ejercicio.videoUrl);
+    setVideoUrl(ejercicio.videoUrl || '');
     setShowForm(true);
     setError('');
   };

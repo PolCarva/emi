@@ -46,6 +46,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
   const [edad, setEdad] = useState<number>(18);
   const [nivel, setNivel] = useState<'Principiante' | 'Intermedio' | 'Avanzado'>('Principiante');
   const [periodizacion, setPeriodizacion] = useState('');
+  const [semanaActual, setSemanaActual] = useState<number>(1);
   const [dias, setDias] = useState<DiaRutina[]>([
     {
       nombre: 'Día 1',
@@ -252,6 +253,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
       edad,
       nivel,
       periodizacion,
+      semanaActual,
       dias
     });
   };
