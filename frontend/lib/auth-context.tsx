@@ -33,9 +33,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setTimeout(() => {
         setUser(JSON.parse(savedUser));
         setRole(savedRole as 'profesor' | 'alumno' | 'admin');
+        setIsLoading(false);
+      }, 0);
+    } else {
+      setTimeout(() => {
+        setIsLoading(false);
       }, 0);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (credentials: LoginCredentials) => {

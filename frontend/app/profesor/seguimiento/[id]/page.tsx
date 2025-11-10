@@ -32,7 +32,6 @@ interface SeguimientoData {
 export default function SeguimientoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
-  const [updatingPeso, setUpdatingPeso] = useState<{[key: string]: boolean}>({});
   const [semanaSeleccionada, setSemanaSeleccionada] = useState<number>(1);
   const [pesosLocales, setPesosLocales] = useState<{[key: string]: number | null}>({});
   const debounceTimers = useRef<{[key: string]: NodeJS.Timeout}>({});
@@ -80,8 +79,10 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
   const [haInicializado, setHaInicializado] = useState(false);
   useEffect(() => {
     if (ultimaSemana > 1 && !haInicializado && seguimiento) {
-      setSemanaSeleccionada(ultimaSemana);
-      setHaInicializado(true);
+      setTimeout(() => {
+        setSemanaSeleccionada(ultimaSemana);
+        setHaInicializado(true);
+      }, 0);
     }
   }, [ultimaSemana, haInicializado, seguimiento]);
 
@@ -99,18 +100,11 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
       peso: number | null;
       numeroSemana: number;
     }) => {
-      const key = `${numeroSemana}-${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
-      setUpdatingPeso(prev => ({ ...prev, [key]: true }));
-      
-      try {
-        const response = await api.put(
-          `/api/profesor/seguimiento/${id}/ejercicio/${diaIndex}/${bloqueIndex}/${ejercicioIndex}/peso`,
-          { peso, numeroSemana }
-        );
-        return response.data;
-      } finally {
-        setUpdatingPeso(prev => ({ ...prev, [key]: false }));
-      }
+      const response = await api.put(
+        `/api/profesor/seguimiento/${id}/ejercicio/${diaIndex}/${bloqueIndex}/${ejercicioIndex}/peso`,
+        { peso, numeroSemana }
+      );
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['seguimiento', id] });
@@ -230,7 +224,7 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
 
   // Organizar historial por ejercicio (debe estar antes de cualquier return)
   const historialPorEjercicio = useMemo(() => {
-    if (!seguimiento?.historialSemanas) return {};
+    if (!seguimiento || !seguimiento.historialSemanas) return {};
 
     const ejerciciosMap: { [ejercicioId: string]: Array<{ semana: number; peso: number; repeticiones: number; volumen: number; fecha: string }> } = {};
 
@@ -255,7 +249,7 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
       });
 
     return ejerciciosMap;
-  }, [seguimiento?.historialSemanas]);
+  }, [seguimiento]);
 
   // Calcular datos derivados (antes del return condicional)
   const rutina = seguimiento?.rutinaActual;
@@ -362,7 +356,6 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
                                       {bloque.ejercicios.map((ejercicio, ejercicioIndex: number) => {
                                         const peso = obtenerPesoEjercicio(diaIndex, bloqueIndex, ejercicioIndex, numeroSemana);
                                         const volumen = calcularVolumen(ejercicio.series, ejercicio.repeticiones, peso);
-                                        const key = `${numeroSemana}-${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
 
                                         return (
                                           <div key={ejercicioIndex} className="bg-gray-50 rounded p-2 sm:p-3 text-xs sm:text-sm">
