@@ -29,13 +29,20 @@ export default function Home() {
           } catch (error: unknown) {
             // Si no hay respuesta o es error 403, significa que no hay admins
             const status = (error as { response?: { status?: number } })?.response?.status;
-            if (status === 403 || status === 401) {
+            const isNetworkError = !(error as { response?: { status?: number } })?.response;
+            
+            // Si es error de red (API no disponible), redirigir a login
+            if (isNetworkError) {
+              console.warn('Backend no disponible, redirigiendo a login');
+              router.push('/login');
+            } else if (status === 403 || status === 401) {
               router.push('/create-first-admin');
             } else {
               router.push('/login');
             }
+          } finally {
+            setCheckingAdmins(false);
           }
-          setCheckingAdmins(false);
         }
       }
     };
