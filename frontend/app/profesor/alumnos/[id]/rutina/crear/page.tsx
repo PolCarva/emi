@@ -5,6 +5,26 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { use } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  useDroppable,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import api from '@/lib/api';
 import type { Alumno } from '@/types';
 import SearchableSelect from '@/components/common/SearchableSelect';
@@ -62,6 +82,17 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
 
   // Estado para selección múltiple de ejercicios (clave: `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`)
   const [ejerciciosSeleccionados, setEjerciciosSeleccionados] = useState<Set<string>>(new Set());
+  
+  // Estado para drag and drop
+  const [activeId, setActiveId] = useState<string | null>(null);
+  
+  // Sensores para drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Estados para crear ejercicio desde la rutina
   const [showCrearEjercicio, setShowCrearEjercicio] = useState(false);
@@ -386,6 +417,156 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     setEjercicioError('');
   };
 
+  // Manejar inicio del drag
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  // Manejar final del drag (drop)
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Parsear IDs: formato "ejercicio-{diaIndex}-{bloqueIndex}-{ejercicioIndex}" o "bloque-{diaIndex}-{bloqueIndex}"
+    const parseEjercicioId = (id: string) => {
+      const match = id.match(/^ejercicio-(\d+)-(\d+)-(\d+)$/);
+      if (match) {
+        return {
+          tipo: 'ejercicio' as const,
+          diaIndex: parseInt(match[1]),
+          bloqueIndex: parseInt(match[2]),
+          ejercicioIndex: parseInt(match[3]),
+        };
+      }
+      return null;
+    };
+
+    const parseBloqueId = (id: string) => {
+      const match = id.match(/^bloque-(\d+)-(\d+)$/);
+      if (match) {
+        return {
+          tipo: 'bloque' as const,
+          diaIndex: parseInt(match[1]),
+          bloqueIndex: parseInt(match[2]),
+        };
+      }
+      return null;
+    };
+
+    const activeData = parseEjercicioId(activeId);
+    if (!activeData) return;
+
+    // Si se suelta sobre otro ejercicio, mover dentro del mismo bloque o a otro bloque
+    const overEjercicioData = parseEjercicioId(overId);
+    if (overEjercicioData) {
+      const nuevosDias = [...dias];
+      
+      // Si es el mismo bloque, solo reordenar
+      if (activeData.diaIndex === overEjercicioData.diaIndex && 
+          activeData.bloqueIndex === overEjercicioData.bloqueIndex) {
+        const bloque = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex];
+        const ejercicios = arrayMove(
+          bloque.ejercicios,
+          activeData.ejercicioIndex,
+          overEjercicioData.ejercicioIndex
+        );
+        nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios = ejercicios;
+      } else {
+        // Mover a otro bloque
+        const ejercicio = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios[activeData.ejercicioIndex];
+        nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios.splice(activeData.ejercicioIndex, 1);
+        nuevosDias[overEjercicioData.diaIndex].bloques[overEjercicioData.bloqueIndex].ejercicios.splice(overEjercicioData.ejercicioIndex, 0, ejercicio);
+      }
+      
+      setDias(nuevosDias);
+      return;
+    }
+
+    // Si se suelta sobre un bloque
+    const overBloqueData = parseBloqueId(overId);
+    if (overBloqueData) {
+      const nuevosDias = [...dias];
+      
+      // Si es el mismo bloque, no hacer nada (ya se maneja arriba)
+      if (activeData.diaIndex === overBloqueData.diaIndex && 
+          activeData.bloqueIndex === overBloqueData.bloqueIndex) {
+        return;
+      }
+
+      // Mover ejercicio a otro bloque
+      const ejercicio = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios[activeData.ejercicioIndex];
+      nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios.splice(activeData.ejercicioIndex, 1);
+      nuevosDias[overBloqueData.diaIndex].bloques[overBloqueData.bloqueIndex].ejercicios.push(ejercicio);
+      
+      setDias(nuevosDias);
+      return;
+    }
+
+    // Si se suelta sobre un área de día (crear nuevo bloque)
+    const parseDiaId = (id: string) => {
+      const match = id.match(/^dia-(\d+)$/);
+      if (match) {
+        return {
+          tipo: 'dia' as const,
+          diaIndex: parseInt(match[1]),
+        };
+      }
+      return null;
+    };
+
+    const overDiaData = parseDiaId(overId);
+    if (overDiaData) {
+      const nuevosDias = [...dias];
+      
+      // Crear nuevo bloque en el día destino
+      const ejercicio = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios[activeData.ejercicioIndex];
+      nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios.splice(activeData.ejercicioIndex, 1);
+      
+      const nuevoBloque = {
+        nombre: `Bloque ${nuevosDias[overDiaData.diaIndex].bloques.length + 1}`,
+        ejercicios: [ejercicio]
+      };
+      nuevosDias[overDiaData.diaIndex].bloques.push(nuevoBloque);
+      
+      setDias(nuevosDias);
+      return;
+    }
+
+    // Si se suelta sobre el botón "Agregar Bloque"
+    const parseAgregarBloqueId = (id: string) => {
+      const match = id.match(/^agregar-bloque-(\d+)$/);
+      if (match) {
+        return {
+          tipo: 'agregar-bloque' as const,
+          diaIndex: parseInt(match[1]),
+        };
+      }
+      return null;
+    };
+
+    const overAgregarBloqueData = parseAgregarBloqueId(overId);
+    if (overAgregarBloqueData) {
+      const nuevosDias = [...dias];
+      
+      // Crear nuevo bloque con el ejercicio arrastrado
+      const ejercicio = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios[activeData.ejercicioIndex];
+      nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios.splice(activeData.ejercicioIndex, 1);
+      
+      const nuevoBloque = {
+        nombre: `Bloque ${nuevosDias[overAgregarBloqueData.diaIndex].bloques.length + 1}`,
+        ejercicios: [ejercicio]
+      };
+      nuevosDias[overAgregarBloqueData.diaIndex].bloques.push(nuevoBloque);
+      
+      setDias(nuevosDias);
+    }
+  };
+
   // Crear nuevo ejercicio
   const handleCrearEjercicio = (e: React.FormEvent) => {
     e.preventDefault();
@@ -439,6 +620,344 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     });
   };
 
+  // Componente para botón "Agregar Bloque" droppable
+  function DroppableAgregarBloque({ diaIndex, onAgregarBloque }: { diaIndex: number; onAgregarBloque: () => void }) {
+    const agregarBloqueId = `agregar-bloque-${diaIndex}`;
+    const { setNodeRef, isOver } = useDroppable({
+      id: agregarBloqueId,
+    });
+
+    return (
+      <button
+        ref={setNodeRef}
+        type="button"
+        onClick={onAgregarBloque}
+        className={`w-full px-4 py-2 text-sm rounded-md transition-colors ${
+          isOver 
+            ? 'bg-blue-500 text-white border-2 border-blue-600' 
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+        }`}
+      >
+        {isOver ? 'Soltar aquí para crear bloque' : '+ Agregar Bloque'}
+      </button>
+    );
+  }
+
+  // Componente para bloque droppable
+  interface DroppableBloqueProps {
+    id: string;
+    bloque: Bloque;
+    bloqueIndex: number;
+    diaIndex: number;
+    ejercicioIds: string[];
+    ejerciciosSeleccionados: Set<string>;
+    ejercicios: EjercicioProfesor[] | undefined;
+    onActualizarNombreBloque: (nombre: string) => void;
+    onAgregarEjercicio: () => void;
+    onEliminarBloque: () => void;
+    onToggleSeleccionarTodos: () => void;
+    onEliminarEjerciciosSeleccionados: () => void;
+    onToggleSeleccionEjercicio: (ejercicioIndex: number) => void;
+    onActualizarEjercicio: (ejercicioIndex: number, campo: keyof EjercicioRutina, valor: string | number | null) => void;
+    onSeleccionarEjercicio: (ejercicioIndex: number, ejercicioId: string) => void;
+    onAbrirCrearEjercicio: (ejercicioIndex: number) => void;
+    onEliminarEjercicio: (ejercicioIndex: number) => void;
+    puedeEliminarBloque: boolean;
+  }
+
+  function DroppableBloque({
+    id,
+    bloque,
+    bloqueIndex,
+    diaIndex,
+    ejercicioIds,
+    ejerciciosSeleccionados,
+    ejercicios,
+    onActualizarNombreBloque,
+    onAgregarEjercicio,
+    onEliminarBloque,
+    onToggleSeleccionarTodos,
+    onEliminarEjerciciosSeleccionados,
+    onToggleSeleccionEjercicio,
+    onActualizarEjercicio,
+    onSeleccionarEjercicio,
+    onAbrirCrearEjercicio,
+    onEliminarEjercicio,
+    puedeEliminarBloque,
+  }: DroppableBloqueProps) {
+    const { setNodeRef, isOver } = useDroppable({
+      id,
+    });
+
+    return (
+      <div
+        ref={setNodeRef}
+        className={`bg-gray-50 rounded-lg p-3 sm:p-4 ${isOver ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
+      >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
+                      <input
+                        type="text"
+                        value={bloque.nombre}
+            onChange={(e) => onActualizarNombreBloque(e.target.value)}
+                        className="font-medium text-gray-900 px-2 py-1 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+                        placeholder="Nombre del bloque"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+              onClick={onAgregarEjercicio}
+                          className="flex-1 sm:flex-none px-3 py-1 text-xs sm:text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                        >
+                          + Ejercicio
+                        </button>
+            {puedeEliminarBloque && (
+                          <button
+                            type="button"
+                onClick={onEliminarBloque}
+                            className="flex-1 sm:flex-none px-3 py-1 text-xs sm:text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Ejercicios */}
+        <SortableContext items={ejercicioIds} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-3">
+                      {/* Controles de selección múltiple */}
+                      {bloque.ejercicios.length > 0 && (
+                        <div className="flex items-center justify-between gap-2 p-2 bg-gray-100 rounded-md border border-gray-200">
+                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={bloque.ejercicios.every((_, ejercicioIndex) => {
+                                const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+                                return ejerciciosSeleccionados.has(key);
+                              })}
+                    onChange={onToggleSeleccionarTodos}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span>
+                              {bloque.ejercicios.some((_, ejercicioIndex) => {
+                                const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+                                return ejerciciosSeleccionados.has(key);
+                              })
+                                ? `${bloque.ejercicios.filter((_, ejercicioIndex) => {
+                                    const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+                                    return ejerciciosSeleccionados.has(key);
+                                  }).length} seleccionado(s)`
+                                : 'Seleccionar todos'}
+                            </span>
+                          </label>
+                          {bloque.ejercicios.some((_, ejercicioIndex) => {
+                            const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+                            return ejerciciosSeleccionados.has(key);
+                          }) && (
+                            <button
+                              type="button"
+                    onClick={onEliminarEjerciciosSeleccionados}
+                              className="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                            >
+                              Eliminar seleccionados
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {bloque.ejercicios.map((ejercicio, ejercicioIndex) => {
+                        const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+                        const estaSeleccionado = ejerciciosSeleccionados.has(key);
+                        return (
+                <SortableEjercicio
+                  key={ejercicioIndex}
+                  ejercicio={ejercicio}
+                  ejercicioIndex={ejercicioIndex}
+                  diaIndex={diaIndex}
+                  bloqueIndex={bloqueIndex}
+                  estaSeleccionado={estaSeleccionado}
+                  ejercicios={ejercicios}
+                  onToggleSeleccion={() => onToggleSeleccionEjercicio(ejercicioIndex)}
+                  onActualizarEjercicio={(campo, valor) => onActualizarEjercicio(ejercicioIndex, campo, valor)}
+                  onSeleccionarEjercicio={(ejercicioId) => onSeleccionarEjercicio(ejercicioIndex, ejercicioId)}
+                  onAbrirCrearEjercicio={() => onAbrirCrearEjercicio(ejercicioIndex)}
+                  onEliminarEjercicio={() => onEliminarEjercicio(ejercicioIndex)}
+                />
+              );
+            })}
+            {bloque.ejercicios.length === 0 && (
+              <p className="text-sm text-gray-500 text-center py-2">
+                No hay ejercicios en este bloque. Haz clic en &quot;+ Ejercicio&quot; para agregar uno o arrastra un ejercicio aquí.
+              </p>
+            )}
+          </div>
+        </SortableContext>
+      </div>
+    );
+  }
+
+  // Componente para ejercicio arrastrable
+  interface SortableEjercicioProps {
+    ejercicio: EjercicioRutina;
+    ejercicioIndex: number;
+    diaIndex: number;
+    bloqueIndex: number;
+    estaSeleccionado: boolean;
+    ejercicios: EjercicioProfesor[] | undefined;
+    onToggleSeleccion: () => void;
+    onActualizarEjercicio: (campo: keyof EjercicioRutina, valor: string | number | null) => void;
+    onSeleccionarEjercicio: (ejercicioId: string) => void;
+    onAbrirCrearEjercicio: () => void;
+    onEliminarEjercicio: () => void;
+  }
+
+  function SortableEjercicio({
+    ejercicio,
+    ejercicioIndex,
+    diaIndex,
+    bloqueIndex,
+    estaSeleccionado,
+    ejercicios,
+    onToggleSeleccion,
+    onActualizarEjercicio,
+    onSeleccionarEjercicio,
+    onAbrirCrearEjercicio,
+    onEliminarEjercicio,
+  }: SortableEjercicioProps) {
+    const id = `ejercicio-${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`bg-white rounded-md p-2 sm:p-3 border-2 transition-colors ${
+          estaSeleccionado ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+        } ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+      >
+                          <div className="flex items-start gap-2 mb-2">
+          <div
+            {...attributes}
+            {...listeners}
+            className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+            title="Arrastrar para mover"
+          >
+            ⋮⋮
+          </div>
+                            <input
+                              type="checkbox"
+                              checked={estaSeleccionado}
+            onChange={onToggleSeleccion}
+                              className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
+                            <div className="sm:col-span-2 lg:col-span-2">
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="block text-xs font-medium text-gray-700">
+                                  Ejercicio *
+                                </label>
+                                <button
+                                  type="button"
+                onClick={onAbrirCrearEjercicio}
+                                  className="text-xs text-blue-600 hover:text-blue-700 underline"
+                                >
+                                  + Crear nuevo
+                                </button>
+                              </div>
+                              <SearchableSelect
+                                options={ejercicios?.map(ej => ({
+                                  value: ej._id || ej.id || '',
+                                  label: ej.nombre
+                                })) || []}
+                                value={ejercicios?.find(e => e.nombre === ejercicio.nombre && e.videoUrl === ejercicio.videoUrl)?._id || ejercicios?.find(e => e.nombre === ejercicio.nombre && e.videoUrl === ejercicio.videoUrl)?.id || ''}
+                                onChange={(value) => {
+                                  if (value) {
+                  onSeleccionarEjercicio(value);
+                                  }
+                                }}
+                                placeholder="Buscar ejercicio..."
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Series *
+                              </label>
+                              <input
+                                type="number"
+                                value={ejercicio.series}
+              onChange={(e) => onActualizarEjercicio('series', parseInt(e.target.value) || 0)}
+                                min="1"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Repeticiones *
+                              </label>
+                              <input
+                                type="number"
+                                value={ejercicio.repeticiones}
+              onChange={(e) => onActualizarEjercicio('repeticiones', parseInt(e.target.value) || 0)}
+                                min="1"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Pausa (seg) *
+                              </label>
+                              <input
+                                type="number"
+                                value={ejercicio.pausa}
+              onChange={(e) => onActualizarEjercicio('pausa', parseInt(e.target.value) || 0)}
+                                min="0"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="flex items-center text-xs text-gray-500">
+                              <span className="mr-2">Peso inicial (opcional):</span>
+                              <input
+                                type="number"
+                                step="0.5"
+                                value={ejercicio.peso ?? ''}
+              onChange={(e) => onActualizarEjercicio('peso', e.target.value === '' ? null : parseFloat(e.target.value))}
+                                min="0"
+                                className="w-20 px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                              <span className="ml-1">kg</span>
+                            </div>
+                            <button
+                              type="button"
+            onClick={onEliminarEjercicio}
+                              className="px-2 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      );
+  }
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="mb-6 sm:mb-8">
@@ -448,8 +967,8 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Crear Nueva Rutina</h1>
         {alumno && (
           <p className="mt-2 text-sm sm:text-base text-gray-600">Para {alumno.nombre}</p>
-        )}
-      </div>
+                      )}
+                    </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Información básica */}
@@ -468,7 +987,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                 placeholder="Ej: Rutina de Fuerza e Hipertrofia"
                 required
               />
-            </div>
+                  </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Género *
@@ -543,6 +1062,12 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Días de la rutina */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
         <div className="bg-white shadow rounded-lg p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Días de la Rutina</h2>
@@ -555,227 +1080,85 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
             </button>
           </div>
 
-          {dias.map((dia, diaIndex) => (
-            <div key={diaIndex} className="mb-4 sm:mb-6 border border-gray-200 rounded-lg p-3 sm:p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
-                <input
-                  type="text"
-                  value={dia.nombre}
-                  onChange={(e) => actualizarNombreDia(diaIndex, e.target.value)}
-                  className="text-base sm:text-lg font-semibold text-gray-900 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-                  placeholder="Nombre del día"
-                />
-                {dias.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => eliminarDia(diaIndex)}
-                    className="px-3 py-1 text-xs sm:text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
-                  >
-                    Eliminar Día
-                  </button>
-                )}
-              </div>
+            {dias.map((dia, diaIndex) => {
+              const diaId = `dia-${diaIndex}`;
+              const { setNodeRef: setDiaNodeRef, isOver: isDiaOver } = useDroppable({
+                id: diaId,
+              });
+              
+              return (
+              <div 
+                key={diaIndex} 
+                ref={setDiaNodeRef}
+                className={`mb-4 sm:mb-6 border border-gray-200 rounded-lg p-3 sm:p-4 ${isDiaOver ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+                  <input
+                    type="text"
+                    value={dia.nombre}
+                    onChange={(e) => actualizarNombreDia(diaIndex, e.target.value)}
+                    className="text-base sm:text-lg font-semibold text-gray-900 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+                    placeholder="Nombre del día"
+                  />
+                  {dias.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => eliminarDia(diaIndex)}
+                      className="px-3 py-1 text-xs sm:text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
+                    >
+                      Eliminar Día
+                    </button>
+                  )}
+                </div>
 
               {/* Bloques */}
               <div className="space-y-4">
-                {dia.bloques.map((bloque, bloqueIndex) => (
-                  <div key={bloqueIndex} className="bg-gray-50 rounded-lg p-3 sm:p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
-                      <input
-                        type="text"
-                        value={bloque.nombre}
-                        onChange={(e) => actualizarNombreBloque(diaIndex, bloqueIndex, e.target.value)}
-                        className="font-medium text-gray-900 px-2 py-1 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-                        placeholder="Nombre del bloque"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => agregarEjercicio(diaIndex, bloqueIndex)}
-                          className="flex-1 sm:flex-none px-3 py-1 text-xs sm:text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                        >
-                          + Ejercicio
-                        </button>
-                        {dia.bloques.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => eliminarBloque(diaIndex, bloqueIndex)}
-                            className="flex-1 sm:flex-none px-3 py-1 text-xs sm:text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                          >
-                            Eliminar
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Ejercicios */}
-                    <div className="space-y-3">
-                      {/* Controles de selección múltiple */}
-                      {bloque.ejercicios.length > 0 && (
-                        <div className="flex items-center justify-between gap-2 p-2 bg-gray-100 rounded-md border border-gray-200">
-                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={bloque.ejercicios.every((_, ejercicioIndex) => {
-                                const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
-                                return ejerciciosSeleccionados.has(key);
-                              })}
-                              onChange={() => toggleSeleccionarTodosBloque(diaIndex, bloqueIndex)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span>
-                              {bloque.ejercicios.some((_, ejercicioIndex) => {
-                                const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
-                                return ejerciciosSeleccionados.has(key);
-                              })
-                                ? `${bloque.ejercicios.filter((_, ejercicioIndex) => {
-                                    const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
-                                    return ejerciciosSeleccionados.has(key);
-                                  }).length} seleccionado(s)`
-                                : 'Seleccionar todos'}
-                            </span>
-                          </label>
-                          {bloque.ejercicios.some((_, ejercicioIndex) => {
-                            const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
-                            return ejerciciosSeleccionados.has(key);
-                          }) && (
-                            <button
-                              type="button"
-                              onClick={() => eliminarEjerciciosSeleccionados(diaIndex, bloqueIndex)}
-                              className="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                            >
-                              Eliminar seleccionados
-                            </button>
-                          )}
-                        </div>
-                      )}
-                      {bloque.ejercicios.map((ejercicio, ejercicioIndex) => {
-                        const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
-                        const estaSeleccionado = ejerciciosSeleccionados.has(key);
+                {dia.bloques.map((bloque, bloqueIndex) => {
+                  const bloqueId = `bloque-${diaIndex}-${bloqueIndex}`;
+                  const ejercicioIds = bloque.ejercicios.map((_, idx) => `ejercicio-${diaIndex}-${bloqueIndex}-${idx}`);
+                  
                         return (
-                        <div key={ejercicioIndex} className={`bg-white rounded-md p-2 sm:p-3 border-2 transition-colors ${estaSeleccionado ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}>
-                          <div className="flex items-start gap-2 mb-2">
-                            <input
-                              type="checkbox"
-                              checked={estaSeleccionado}
-                              onChange={() => toggleSeleccionEjercicio(diaIndex, bloqueIndex, ejercicioIndex)}
-                              className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
-                            <div className="sm:col-span-2 lg:col-span-2">
-                              <div className="flex items-center justify-between mb-1">
-                                <label className="block text-xs font-medium text-gray-700">
-                                  Ejercicio *
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={() => abrirCrearEjercicio(diaIndex, bloqueIndex, ejercicioIndex)}
-                                  className="text-xs text-blue-600 hover:text-blue-700 underline"
-                                >
-                                  + Crear nuevo
-                                </button>
-                              </div>
-                              <SearchableSelect
-                                options={ejercicios?.map(ej => ({
-                                  value: ej._id || ej.id || '',
-                                  label: ej.nombre
-                                })) || []}
-                                value={ejercicios?.find(e => e.nombre === ejercicio.nombre && e.videoUrl === ejercicio.videoUrl)?._id || ejercicios?.find(e => e.nombre === ejercicio.nombre && e.videoUrl === ejercicio.videoUrl)?.id || ''}
-                                onChange={(value) => {
-                                  if (value) {
-                                    seleccionarEjercicio(diaIndex, bloqueIndex, ejercicioIndex, value);
-                                  }
-                                }}
-                                placeholder="Buscar ejercicio..."
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Series *
-                              </label>
-                              <input
-                                type="number"
-                                value={ejercicio.series}
-                                onChange={(e) => actualizarEjercicio(diaIndex, bloqueIndex, ejercicioIndex, 'series', parseInt(e.target.value) || 0)}
-                                min="1"
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Repeticiones *
-                              </label>
-                              <input
-                                type="number"
-                                value={ejercicio.repeticiones}
-                                onChange={(e) => actualizarEjercicio(diaIndex, bloqueIndex, ejercicioIndex, 'repeticiones', parseInt(e.target.value) || 0)}
-                                min="1"
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Pausa (seg) *
-                              </label>
-                              <input
-                                type="number"
-                                value={ejercicio.pausa}
-                                onChange={(e) => actualizarEjercicio(diaIndex, bloqueIndex, ejercicioIndex, 'pausa', parseInt(e.target.value) || 0)}
-                                min="0"
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                              />
-                            </div>
-                          </div>
-                          <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                            <div className="flex items-center text-xs text-gray-500">
-                              <span className="mr-2">Peso inicial (opcional):</span>
-                              <input
-                                type="number"
-                                step="0.5"
-                                value={ejercicio.peso ?? ''}
-                                onChange={(e) => actualizarEjercicio(diaIndex, bloqueIndex, ejercicioIndex, 'peso', e.target.value === '' ? null : parseFloat(e.target.value))}
-                                min="0"
-                                className="w-20 px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="0"
-                              />
-                              <span className="ml-1">kg</span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => eliminarEjercicio(diaIndex, bloqueIndex, ejercicioIndex)}
-                              className="px-2 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        </div>
+                    <DroppableBloque
+                      key={bloqueIndex}
+                      id={bloqueId}
+                      bloque={bloque}
+                      bloqueIndex={bloqueIndex}
+                      diaIndex={diaIndex}
+                      ejercicioIds={ejercicioIds}
+                      ejerciciosSeleccionados={ejerciciosSeleccionados}
+                      ejercicios={ejercicios}
+                      onActualizarNombreBloque={(nombre) => actualizarNombreBloque(diaIndex, bloqueIndex, nombre)}
+                      onAgregarEjercicio={() => agregarEjercicio(diaIndex, bloqueIndex)}
+                      onEliminarBloque={() => eliminarBloque(diaIndex, bloqueIndex)}
+                      onToggleSeleccionarTodos={() => toggleSeleccionarTodosBloque(diaIndex, bloqueIndex)}
+                      onEliminarEjerciciosSeleccionados={() => eliminarEjerciciosSeleccionados(diaIndex, bloqueIndex)}
+                      onToggleSeleccionEjercicio={(ejercicioIndex) => toggleSeleccionEjercicio(diaIndex, bloqueIndex, ejercicioIndex)}
+                      onActualizarEjercicio={(ejercicioIndex, campo, valor) => actualizarEjercicio(diaIndex, bloqueIndex, ejercicioIndex, campo, valor)}
+                      onSeleccionarEjercicio={(ejercicioIndex, ejercicioId) => seleccionarEjercicio(diaIndex, bloqueIndex, ejercicioIndex, ejercicioId)}
+                      onAbrirCrearEjercicio={(ejercicioIndex) => abrirCrearEjercicio(diaIndex, bloqueIndex, ejercicioIndex)}
+                      onEliminarEjercicio={(ejercicioIndex) => eliminarEjercicio(diaIndex, bloqueIndex, ejercicioIndex)}
+                      puedeEliminarBloque={dia.bloques.length > 1}
+                    />
                       );
                       })}
-                      {bloque.ejercicios.length === 0 && (
-                        <p className="text-sm text-gray-500 text-center py-2">
-                          No hay ejercicios en este bloque. Haz clic en &quot;+ Ejercicio&quot; para agregar uno.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
                 
-                <button
-                  type="button"
-                  onClick={() => agregarBloque(diaIndex)}
-                  className="w-full px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-                >
-                  + Agregar Bloque
-                </button>
+                <DroppableAgregarBloque
+                  diaIndex={diaIndex}
+                  onAgregarBloque={() => agregarBloque(diaIndex)}
+                />
               </div>
             </div>
-          ))}
+            );
+            })}
         </div>
+          <DragOverlay>
+            {activeId ? (
+              <div className="bg-white rounded-md p-3 border-2 border-blue-500 shadow-lg opacity-90">
+                <p className="text-sm font-medium text-gray-900">Arrastrando ejercicio...</p>
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
 
         {/* Botones de acción */}
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pb-6">
