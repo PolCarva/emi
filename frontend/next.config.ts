@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
+  // Configuración de Turbopack (Next.js 16 usa Turbopack por defecto)
+  turbopack: {},
 };
 
 export default nextConfig;

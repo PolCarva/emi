@@ -37,8 +37,32 @@ const chatbotLimiter = rateLimit({
 
 // Middlewares
 // Configurar CORS
+const normalizeUrl = (url) => {
+  if (!url) return url;
+  // Eliminar barra final si existe
+  return url.replace(/\/$/, '');
+};
+
+const frontendUrl = normalizeUrl(process.env.FRONTEND_URL) || 'http://localhost:3000';
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Permitir requests sin origin (como Postman, curl, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Normalizar el origin recibido (eliminar barra final)
+    const normalizedOrigin = normalizeUrl(origin);
+    const normalizedFrontendUrl = normalizeUrl(frontendUrl);
+    
+    // Verificar si el origin coincide (con o sin barra final)
+    if (normalizedOrigin === normalizedFrontendUrl || origin === frontendUrl) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
