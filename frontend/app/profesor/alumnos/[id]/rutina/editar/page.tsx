@@ -42,6 +42,51 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
   // Estado para selección múltiple de ejercicios (clave: `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`)
   const [ejerciciosSeleccionados, setEjerciciosSeleccionados] = useState<Set<string>>(new Set());
 
+  // Mutación para crear ejercicio
+  const createEjercicioMutation = useMutation({
+    mutationFn: async (data: { nombre: string; videoUrl?: string | null }) => {
+      return await api.post('/api/profesor/ejercicios', data);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['ejercicios'] });
+      setShowCrearEjercicio(false);
+      setNuevoEjercicioNombre('');
+      setNuevoEjercicioVideoUrl('');
+      setEjercicioError('');
+      
+      // Si hay un contexto, seleccionar automáticamente el nuevo ejercicio
+      if (ejercicioContexto) {
+        const nuevoEjercicioId = data.data._id || data.data.id;
+        if (nuevoEjercicioId) {
+          setTimeout(() => {
+            handleEjercicioSeleccionar(
+              ejercicioContexto.diaIndex,
+              ejercicioContexto.bloqueIndex,
+              ejercicioContexto.ejercicioIndex,
+              nuevoEjercicioId
+            );
+          }, 100);
+        }
+      }
+      setEjercicioContexto(null);
+    },
+    onError: (err: unknown) => {
+      const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al crear ejercicio';
+      setEjercicioError(errorMessage);
+    },
+  });
+
+  // Estados para crear ejercicio desde la rutina
+  const [showCrearEjercicio, setShowCrearEjercicio] = useState(false);
+  const [nuevoEjercicioNombre, setNuevoEjercicioNombre] = useState('');
+  const [nuevoEjercicioVideoUrl, setNuevoEjercicioVideoUrl] = useState('');
+  const [ejercicioError, setEjercicioError] = useState('');
+  const [ejercicioContexto, setEjercicioContexto] = useState<{
+    diaIndex: number;
+    bloqueIndex: number;
+    ejercicioIndex: number;
+  } | null>(null);
+
   useEffect(() => {
     if (rutina) {
       // Usar setTimeout para evitar setState síncrono en effect
@@ -141,6 +186,31 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     newBloques[bloqueIndex] = { ...newBloques[bloqueIndex], ejercicios: newEjercicios };
     newDias[diaIndex] = { ...newDias[diaIndex], bloques: newBloques };
     setFormData({ ...formData, dias: newDias });
+  };
+
+  // Abrir formulario para crear ejercicio
+  const abrirCrearEjercicio = (
+    diaIndex: number,
+    bloqueIndex: number,
+    ejercicioIndex: number
+  ) => {
+    setEjercicioContexto({ diaIndex, bloqueIndex, ejercicioIndex });
+    setShowCrearEjercicio(true);
+    setEjercicioError('');
+  };
+
+  // Crear nuevo ejercicio
+  const handleCrearEjercicio = (e: React.FormEvent) => {
+    e.preventDefault();
+    setEjercicioError('');
+    
+    if (!nuevoEjercicioNombre.trim()) {
+      setEjercicioError('El nombre del ejercicio es requerido');
+      return;
+    }
+
+    const videoUrlFinal = nuevoEjercicioVideoUrl.trim() || null;
+    createEjercicioMutation.mutate({ nombre: nuevoEjercicioNombre.trim(), videoUrl: videoUrlFinal });
   };
 
   const handleEjercicioChange = (
@@ -663,9 +733,20 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
                               <div className="space-y-3">
                                 {/* Selector de ejercicio - siempre visible */}
                                 <div>
-                                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                                    Ejercicio
-                                  </label>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <label className="block text-xs font-medium text-gray-700">
+                                      Ejercicio
+                                    </label>
+                                    {(!ejercicio.nombre || ejercicioActual) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => abrirCrearEjercicio(diaIndex, bloqueIndex, ejercicioIndex)}
+                                        className="text-xs text-blue-600 hover:text-blue-700 underline"
+                                      >
+                                        + Crear nuevo
+                                      </button>
+                                    )}
+                                  </div>
                                   {ejercicio.nombre && !ejercicioActual ? (
                                     <div className="w-full px-2 py-1 text-sm border border-yellow-300 bg-yellow-50 rounded-md text-yellow-800">
                                       {ejercicio.nombre} (no disponible en tu biblioteca)
@@ -882,6 +963,70 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
           </button>
         </div>
       </form>
+
+      {/* Modal para crear ejercicio */}
+      {showCrearEjercicio && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Crear Nuevo Ejercicio</h2>
+            {ejercicioError && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-4 text-sm">
+                {ejercicioError}
+              </div>
+            )}
+            <form onSubmit={handleCrearEjercicio} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre del ejercicio *
+                </label>
+                <input
+                  type="text"
+                  value={nuevoEjercicioNombre}
+                  onChange={(e) => setNuevoEjercicioNombre(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ej: Press de banca"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  URL del video (opcional)
+                </label>
+                <input
+                  type="url"
+                  value={nuevoEjercicioVideoUrl}
+                  onChange={(e) => setNuevoEjercicioVideoUrl(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://youtube.com/..."
+                />
+              </div>
+              <div className="flex space-x-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={createEjercicioMutation.isPending}
+                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {createEjercicioMutation.isPending ? 'Creando...' : 'Crear Ejercicio'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCrearEjercicio(false);
+                    setNuevoEjercicioNombre('');
+                    setNuevoEjercicioVideoUrl('');
+                    setEjercicioError('');
+                    setEjercicioContexto(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
