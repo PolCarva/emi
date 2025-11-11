@@ -43,6 +43,7 @@ interface EjercicioRutina {
   repeticiones: number;
   peso: number | null;
   pausa: number;
+  volumen?: number;
 }
 
 interface Bloque {
@@ -245,7 +246,8 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
       series: 3,
       repeticiones: 10,
       peso: null,
-      pausa: 60
+      pausa: 60,
+      volumen: 0
     });
     setDias(nuevosDias);
   };
@@ -400,13 +402,24 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
       ejercicio.volumen = ejercicio.peso !== null && ejercicio.peso !== undefined
         ? ejercicio.series * ejercicio.repeticiones * ejercicio.peso
         : 0;
-    } else if (campo === 'series' || campo === 'repeticiones' || campo === 'pausa') {
-      ejercicio[campo] = typeof valor === 'number' ? valor : parseInt(String(valor));
-      if ((campo === 'series' || campo === 'repeticiones') && ejercicio.peso !== null) {
+    } else if (campo === 'series') {
+      ejercicio.series = typeof valor === 'number' ? valor : parseInt(String(valor));
+      if (ejercicio.peso !== null) {
         ejercicio.volumen = ejercicio.series * ejercicio.repeticiones * (ejercicio.peso || 0);
       }
-    } else {
-      ejercicio[campo] = valor as any;
+    } else if (campo === 'repeticiones') {
+      ejercicio.repeticiones = typeof valor === 'number' ? valor : parseInt(String(valor));
+      if (ejercicio.peso !== null) {
+        ejercicio.volumen = ejercicio.series * ejercicio.repeticiones * (ejercicio.peso || 0);
+      }
+    } else if (campo === 'pausa') {
+      ejercicio.pausa = typeof valor === 'number' ? valor : parseInt(String(valor));
+    } else if (campo === 'nombre') {
+      ejercicio.nombre = typeof valor === 'string' ? valor : String(valor);
+    } else if (campo === 'videoUrl') {
+      ejercicio.videoUrl = valor === null || valor === '' ? null : String(valor);
+    } else if (campo === 'volumen') {
+      ejercicio.volumen = typeof valor === 'number' ? valor : (valor === null ? 0 : parseFloat(String(valor)) || 0);
     }
     
     nuevosDias[diaIndex].bloques[bloqueIndex].ejercicios[ejercicioIndex] = ejercicio;

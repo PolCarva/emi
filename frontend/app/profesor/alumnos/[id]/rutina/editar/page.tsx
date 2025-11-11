@@ -254,7 +254,7 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     bloqueIndex: number,
     ejercicioIndex: number,
     field: 'series' | 'repeticiones' | 'peso' | 'pausa',
-    value: number | string
+    value: number | string | null
   ) => {
     if (!formData || !formData.dias) return;
     
@@ -771,7 +771,7 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     onToggleSeleccionarTodos: () => void;
     onEliminarEjerciciosSeleccionados: () => void;
     onToggleSeleccionEjercicio: (ejercicioIndex: number) => void;
-    onEjercicioChange: (ejercicioIndex: number, field: 'series' | 'repeticiones' | 'peso' | 'pausa', value: number | string) => void;
+    onEjercicioChange: (ejercicioIndex: number, field: 'series' | 'repeticiones' | 'peso' | 'pausa', value: number | string | null) => void;
     onEjercicioSeleccionar: (ejercicioIndex: number, ejercicioId: string) => void;
     onAbrirCrearEjercicio: (ejercicioIndex: number) => void;
     onToggleEditarEjercicio: (ejercicioIndex: number) => void;
@@ -1178,7 +1178,7 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     onToggleSeleccionarTodosBloque: (bloqueIndex: number) => void;
     onEliminarEjerciciosSeleccionados: (bloqueIndex: number) => void;
     onToggleSeleccionEjercicio: (bloqueIndex: number, ejercicioIndex: number) => void;
-    onEjercicioChange: (bloqueIndex: number, ejercicioIndex: number, field: 'series' | 'repeticiones' | 'peso' | 'pausa', value: number | string) => void;
+    onEjercicioChange: (bloqueIndex: number, ejercicioIndex: number, field: 'series' | 'repeticiones' | 'peso' | 'pausa', value: number | string | null) => void;
     onEjercicioSeleccionar: (bloqueIndex: number, ejercicioIndex: number, ejercicioId: string) => void;
     onAbrirCrearEjercicio: (bloqueIndex: number, ejercicioIndex: number) => void;
     onToggleEditarEjercicio: (bloqueIndex: number, ejercicioIndex: number) => void;
