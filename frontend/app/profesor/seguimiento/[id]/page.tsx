@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { use } from 'react';
 import api from '@/lib/api';
 import type { Alumno, Rutina } from '@/types';
+import ProgressChart from '@/components/common/ProgressChart';
 
 interface DiaHistorial {
   fecha: string;
@@ -34,6 +35,7 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
   const queryClient = useQueryClient();
   const [semanaSeleccionada, setSemanaSeleccionada] = useState<number>(1);
   const [pesosLocales, setPesosLocales] = useState<{[key: string]: number | null}>({});
+  const [acordeonAbierto, setAcordeonAbierto] = useState<{[key: string]: boolean}>({});
   const debounceTimers = useRef<{[key: string]: NodeJS.Timeout}>({});
 
   const { data: alumno } = useQuery<Alumno>({
@@ -422,72 +424,123 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
                       <div className="space-y-4">
                         {Object.entries(historialPorEjercicio)
                           .sort((a, b) => a[0].localeCompare(b[0])) // Ordenar por nombre del ejercicio
-                          .map(([ejercicioId, registros]) => (
-                            <div key={ejercicioId} className="border border-gray-200 rounded-lg p-3 sm:p-4">
-                              <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">
-                                {ejercicioId}
-                              </h4>
-                              <div className="space-y-2">
-                                {registros
-                                  .sort((a, b) => a.semana - b.semana) // Ordenar por semana
-                                  .map((registro, index) => (
-                                    <div key={index} className="bg-gray-50 rounded p-2 sm:p-3 text-xs sm:text-sm">
-                                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                                          <span className="font-medium text-blue-600">
-                                            Semana {registro.semana}
-                                          </span>
-                                          <span className="text-gray-500 text-xs">
-                                            {new Date(registro.fecha).toLocaleDateString('es-ES', {
-                                              day: 'numeric',
-                                              month: 'short'
-                                            })}
-                                          </span>
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                                          <div>
-                                            <span className="text-gray-500 text-xs">Peso:</span>
-                                            <span className="ml-2 font-semibold text-blue-600">
-                                              {registro.peso} kg
-                                            </span>
+                          .map(([ejercicioId, registros]) => {
+                            const acordeonKey = ejercicioId;
+                            const estaAbierto = acordeonAbierto[acordeonKey] || false;
+                            // Ordenar registros por semana (ascendente) para comparación
+                            const registrosOrdenados = [...registros].sort((a, b) => a.semana - b.semana);
+                            // Mostrar en orden descendente (más reciente primero)
+                            const registrosMostrar = [...registros].sort((a, b) => b.semana - a.semana);
+
+                            return (
+                              <div key={ejercicioId} className="border border-gray-200 rounded-lg overflow-hidden">
+                                {/* Título del ejercicio */}
+                                <div className="px-3 sm:px-4 pt-3 sm:pt-4">
+                                  <h4 className="font-medium text-gray-900 text-sm sm:text-base">
+                                    {ejercicioId}
+                                  </h4>
+                                </div>
+
+                                {/* Gráfica siempre visible */}
+                                <div className="px-3 sm:px-4">
+                                  <ProgressChart registros={registros} ejercicioId={ejercicioId} />
+                                </div>
+
+                                {/* Botón para ver entradas debajo del chart */}
+                                <div className="px-3 sm:px-4 pb-3 sm:pb-4">
+                                  <button
+                                    onClick={() => setAcordeonAbierto(prev => ({
+                                      ...prev,
+                                      [acordeonKey]: !prev[acordeonKey]
+                                    }))}
+                                    className="w-full flex items-center justify-center gap-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+                                  >
+                                    <span>Ver entradas</span>
+                                    <svg
+                                      className={`w-4 h-4 transition-transform ${estaAbierto ? 'transform rotate-180' : ''}`}
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </button>
+                                </div>
+
+                                {/* Lista de semanas dentro del acordeón */}
+                                {estaAbierto && (
+                                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 border-t border-gray-200">
+                                    <div className="pt-4 space-y-2">
+                                      {registrosMostrar.map((registro) => {
+                                        // Encontrar el índice en el array ordenado para comparación
+                                        const indiceEnOrdenado = registrosOrdenados.findIndex(r => 
+                                          r.semana === registro.semana && 
+                                          r.fecha === registro.fecha
+                                        );
+                                        const registroAnterior = indiceEnOrdenado > 0 ? registrosOrdenados[indiceEnOrdenado - 1] : null;
+
+                                        return (
+                                          <div key={`${ejercicioId}-${registro.semana}-${new Date(registro.fecha).getTime()}`} className="bg-gray-50 rounded-lg p-2 sm:p-3 text-xs sm:text-sm">
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                                <span className="font-medium text-blue-600">
+                                                  Semana {registro.semana}
+                                                </span>
+                                                <span className="text-gray-500 text-xs">
+                                                  {new Date(registro.fecha).toLocaleDateString('es-ES', {
+                                                    day: 'numeric',
+                                                    month: 'short'
+                                                  })}
+                                                </span>
+                                              </div>
+                                              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                                                <div>
+                                                  <span className="text-gray-500 text-xs">Peso:</span>
+                                                  <span className="ml-2 font-semibold text-blue-600">
+                                                    {registro.peso} kg
+                                                  </span>
+                                                </div>
+                                                <div>
+                                                  <span className="text-gray-500 text-xs">Reps:</span>
+                                                  <span className="ml-2 font-semibold">
+                                                    {registro.repeticiones}
+                                                  </span>
+                                                </div>
+                                                <div>
+                                                  <span className="text-gray-500 text-xs">Volumen:</span>
+                                                  <span className="ml-2 font-semibold text-green-600">
+                                                    {registro.volumen?.toLocaleString()} kg
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            {/* Mostrar progresión si hay más de un registro */}
+                                            {registroAnterior && (
+                                              <div className="mt-2 text-xs">
+                                                {registro.peso > registroAnterior.peso ? (
+                                                  <span className="text-green-600">
+                                                    ↑ +{(registro.peso - registroAnterior.peso).toFixed(1)} kg vs semana anterior
+                                                  </span>
+                                                ) : registro.peso < registroAnterior.peso ? (
+                                                  <span className="text-red-600">
+                                                    ↓ {(registro.peso - registroAnterior.peso).toFixed(1)} kg vs semana anterior
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-gray-500">
+                                                    Sin cambio vs semana anterior
+                                                  </span>
+                                                )}
+                                              </div>
+                                            )}
                                           </div>
-                                          <div>
-                                            <span className="text-gray-500 text-xs">Reps:</span>
-                                            <span className="ml-2 font-semibold">
-                                              {registro.repeticiones}
-                                            </span>
-                                          </div>
-                                          <div>
-                                            <span className="text-gray-500 text-xs">Volumen:</span>
-                                            <span className="ml-2 font-semibold text-green-600">
-                                              {registro.volumen?.toLocaleString()} kg
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                      {/* Mostrar progresión si hay más de un registro */}
-                                      {index > 0 && (
-                                        <div className="mt-2 text-xs">
-                                          {registro.peso > registros[index - 1].peso ? (
-                                            <span className="text-green-600">
-                                              ↑ +{(registro.peso - registros[index - 1].peso).toFixed(1)} kg vs semana anterior
-                                            </span>
-                                          ) : registro.peso < registros[index - 1].peso ? (
-                                            <span className="text-red-600">
-                                              ↓ {(registro.peso - registros[index - 1].peso).toFixed(1)} kg vs semana anterior
-                                            </span>
-                                          ) : (
-                                            <span className="text-gray-500">
-                                              Sin cambio vs semana anterior
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
+                                        );
+                                      })}
                                     </div>
-                                  ))}
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                       </div>
                     </div>
                   )}
