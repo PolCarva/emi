@@ -39,6 +39,8 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
 
   const [formData, setFormData] = useState<Partial<Rutina> | null>(null);
   const [ejerciciosEditando, setEjerciciosEditando] = useState<Set<string>>(new Set());
+  // Estado para selección múltiple de ejercicios (clave: `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`)
+  const [ejerciciosSeleccionados, setEjerciciosSeleccionados] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (rutina) {
@@ -237,6 +239,140 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
       const nuevo = new Set(prev);
       nuevo.delete(key);
       return nuevo;
+    });
+
+    // Limpiar selección del ejercicio eliminado
+    setEjerciciosSeleccionados(prev => {
+      const nuevo = new Set(prev);
+      nuevo.delete(key);
+      // Ajustar índices de ejercicios posteriores
+      const nuevosKeys = new Set<string>();
+      prev.forEach(k => {
+        const [d, b, e] = k.split('-').map(Number);
+        if (d === diaIndex && b === bloqueIndex) {
+          if (e < ejercicioIndex) {
+            nuevosKeys.add(k);
+          } else if (e > ejercicioIndex) {
+            nuevosKeys.add(`${d}-${b}-${e - 1}`);
+          }
+        } else {
+          nuevosKeys.add(k);
+        }
+      });
+      return nuevosKeys;
+    });
+  };
+
+  // Toggle selección de un ejercicio
+  const toggleSeleccionEjercicio = (diaIndex: number, bloqueIndex: number, ejercicioIndex: number) => {
+    const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+    setEjerciciosSeleccionados(prev => {
+      const nuevo = new Set(prev);
+      if (nuevo.has(key)) {
+        nuevo.delete(key);
+      } else {
+        nuevo.add(key);
+      }
+      return nuevo;
+    });
+  };
+
+  // Seleccionar/deseleccionar todos los ejercicios de un bloque
+  const toggleSeleccionarTodosBloque = (diaIndex: number, bloqueIndex: number) => {
+    if (!formData || !formData.dias) return;
+    const bloque = formData.dias[diaIndex]?.bloques[bloqueIndex];
+    if (!bloque) return;
+
+    const todosSeleccionados = bloque.ejercicios.every((_, ejercicioIndex) => {
+      const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+      return ejerciciosSeleccionados.has(key);
+    });
+
+    setEjerciciosSeleccionados(prev => {
+      const nuevo = new Set(prev);
+      bloque.ejercicios.forEach((_, ejercicioIndex) => {
+        const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+        if (todosSeleccionados) {
+          nuevo.delete(key);
+        } else {
+          nuevo.add(key);
+        }
+      });
+      return nuevo;
+    });
+  };
+
+  // Eliminar ejercicios seleccionados de un bloque
+  const eliminarEjerciciosSeleccionados = (diaIndex: number, bloqueIndex: number) => {
+    if (!formData || !formData.dias) return;
+    const bloque = formData.dias[diaIndex]?.bloques[bloqueIndex];
+    if (!bloque) return;
+
+    const indicesAEliminar = bloque.ejercicios
+      .map((_, ejercicioIndex) => {
+        const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+        return ejerciciosSeleccionados.has(key) ? ejercicioIndex : null;
+      })
+      .filter((index): index is number => index !== null)
+      .sort((a, b) => b - a); // Ordenar descendente para eliminar desde el final
+
+    if (indicesAEliminar.length === 0) return;
+
+    const newDias = [...formData.dias];
+    const newBloques = [...newDias[diaIndex].bloques];
+    indicesAEliminar.forEach(index => {
+      newBloques[bloqueIndex].ejercicios.splice(index, 1);
+    });
+    newDias[diaIndex] = { ...newDias[diaIndex], bloques: newBloques };
+    setFormData({ ...formData, dias: newDias });
+
+    // Limpiar selecciones eliminadas y ajustar índices
+    setEjerciciosSeleccionados(prev => {
+      const nuevo = new Set(prev);
+      indicesAEliminar.forEach(index => {
+        const key = `${diaIndex}-${bloqueIndex}-${index}`;
+        nuevo.delete(key);
+      });
+      // Ajustar índices de ejercicios restantes
+      const nuevosKeys = new Set<string>();
+      prev.forEach(k => {
+        const [d, b, e] = k.split('-').map(Number);
+        if (d === diaIndex && b === bloqueIndex) {
+          const ejercicioIndex = Number(e);
+          if (!indicesAEliminar.includes(ejercicioIndex)) {
+            // Calcular nuevo índice después de las eliminaciones
+            const eliminadosAntes = indicesAEliminar.filter(i => i > ejercicioIndex).length;
+            nuevosKeys.add(`${d}-${b}-${ejercicioIndex - eliminadosAntes}`);
+          }
+        } else {
+          nuevosKeys.add(k);
+        }
+      });
+      return nuevosKeys;
+    });
+
+    // También limpiar del conjunto de edición
+    setEjerciciosEditando(prev => {
+      const nuevo = new Set(prev);
+      indicesAEliminar.forEach(index => {
+        const key = `${diaIndex}-${bloqueIndex}-${index}`;
+        nuevo.delete(key);
+      });
+      // Ajustar índices de ejercicios restantes
+      const nuevosKeys = new Set<string>();
+      prev.forEach(k => {
+        const [d, b, e] = k.split('-').map(Number);
+        if (d === diaIndex && b === bloqueIndex) {
+          const ejercicioIndex = Number(e);
+          if (!indicesAEliminar.includes(ejercicioIndex)) {
+            const eliminadosAntes = indicesAEliminar.filter(i => i > ejercicioIndex).length;
+            nuevosKeys.add(`${d}-${b}-${ejercicioIndex - eliminadosAntes}`);
+          }
+        } else {
+          nuevosKeys.add(k);
+        }
+      });
+      return nuevosKeys;
     });
   };
 
@@ -466,15 +602,64 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
                       </div>
 
                       <div className="space-y-3 mt-3">
+                        {/* Controles de selección múltiple */}
+                        {bloque.ejercicios.length > 0 && (
+                          <div className="flex items-center justify-between gap-2 p-2 bg-gray-100 rounded-md border border-gray-200">
+                            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={bloque.ejercicios.every((_, ejercicioIndex) => {
+                                  const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+                                  return ejerciciosSeleccionados.has(key);
+                                })}
+                                onChange={() => toggleSeleccionarTodosBloque(diaIndex, bloqueIndex)}
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span>
+                                {bloque.ejercicios.some((_, ejercicioIndex) => {
+                                  const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+                                  return ejerciciosSeleccionados.has(key);
+                                })
+                                  ? `${bloque.ejercicios.filter((_, ejercicioIndex) => {
+                                      const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+                                      return ejerciciosSeleccionados.has(key);
+                                    }).length} seleccionado(s)`
+                                  : 'Seleccionar todos'}
+                              </span>
+                            </label>
+                            {bloque.ejercicios.some((_, ejercicioIndex) => {
+                              const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+                              return ejerciciosSeleccionados.has(key);
+                            }) && (
+                              <button
+                                type="button"
+                                onClick={() => eliminarEjerciciosSeleccionados(diaIndex, bloqueIndex)}
+                                className="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                              >
+                                Eliminar seleccionados
+                              </button>
+                            )}
+                          </div>
+                        )}
                         {bloque.ejercicios.map((ejercicio, ejercicioIndex) => {
                           const estaEditando = isEjercicioEditando(diaIndex, bloqueIndex, ejercicioIndex);
                           const ejercicioActual = ejerciciosProfesor?.find(ej => 
                             ej.nombre === ejercicio.nombre && ej.videoUrl === ejercicio.videoUrl
                           );
                           const ejercicioIdSeleccionado = ejercicioActual ? (ejercicioActual._id || ejercicioActual.id) : '';
+                          const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
+                          const estaSeleccionado = ejerciciosSeleccionados.has(key);
 
                           return (
-                            <div key={ejercicioIndex} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <div key={ejercicioIndex} className={`bg-gray-50 rounded-lg p-4 border-2 transition-colors ${estaSeleccionado ? 'border-blue-500 bg-blue-100' : 'border-gray-200'}`}>
+                              <div className="flex items-start gap-2 mb-3">
+                                <input
+                                  type="checkbox"
+                                  checked={estaSeleccionado}
+                                  onChange={() => toggleSeleccionEjercicio(diaIndex, bloqueIndex, ejercicioIndex)}
+                                  className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                              </div>
                               <div className="space-y-3">
                                 {/* Selector de ejercicio - siempre visible */}
                                 <div>
