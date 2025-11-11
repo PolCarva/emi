@@ -87,8 +87,13 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
   const [activeId, setActiveId] = useState<string | null>(null);
   
   // Sensores para drag and drop
+  // Configurar delay para evitar activación accidental al escribir en inputs
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 10, // Requiere mover 10px antes de activar drag
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -382,12 +387,53 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     campo: keyof EjercicioRutina,
     valor: string | number | null
   ) => {
+    // Guardar el elemento activo y posición del scroll antes del cambio
+    const activeElement = document.activeElement as HTMLInputElement | null;
+    const shouldRestoreFocus = activeElement && activeElement.tagName === 'INPUT';
+    const scrollY = window.scrollY;
+    
     const nuevosDias = [...dias];
-    nuevosDias[diaIndex].bloques[bloqueIndex].ejercicios[ejercicioIndex] = {
-      ...nuevosDias[diaIndex].bloques[bloqueIndex].ejercicios[ejercicioIndex],
-      [campo]: valor
-    };
+    const ejercicio = { ...nuevosDias[diaIndex].bloques[bloqueIndex].ejercicios[ejercicioIndex] };
+    
+    if (campo === 'peso') {
+      ejercicio.peso = valor === '' ? null : (typeof valor === 'number' ? valor : parseFloat(String(valor)) || null);
+      ejercicio.volumen = ejercicio.peso !== null && ejercicio.peso !== undefined
+        ? ejercicio.series * ejercicio.repeticiones * ejercicio.peso
+        : 0;
+    } else if (campo === 'series' || campo === 'repeticiones' || campo === 'pausa') {
+      ejercicio[campo] = typeof valor === 'number' ? valor : parseInt(String(valor));
+      if ((campo === 'series' || campo === 'repeticiones') && ejercicio.peso !== null) {
+        ejercicio.volumen = ejercicio.series * ejercicio.repeticiones * (ejercicio.peso || 0);
+      }
+    } else {
+      ejercicio[campo] = valor as any;
+    }
+    
+    nuevosDias[diaIndex].bloques[bloqueIndex].ejercicios[ejercicioIndex] = ejercicio;
     setDias(nuevosDias);
+    
+    // Restaurar el focus y scroll después del re-render
+    if (shouldRestoreFocus && activeElement) {
+      requestAnimationFrame(() => {
+        // Restaurar scroll primero
+        window.scrollTo(0, scrollY);
+        
+        // Luego restaurar focus
+        const input = document.querySelector(`input[data-ejercicio-id="${diaIndex}-${bloqueIndex}-${ejercicioIndex}-${campo}"]`) as HTMLInputElement;
+        if (input) {
+          input.focus();
+          // Restaurar la posición del cursor si es posible
+          if (activeElement.selectionStart !== null) {
+            input.setSelectionRange(activeElement.selectionStart, activeElement.selectionEnd || activeElement.selectionStart);
+          }
+        }
+      });
+    } else {
+      // Aún restaurar scroll aunque no haya focus
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
+    }
   };
 
   // Seleccionar ejercicio de la biblioteca
@@ -628,9 +674,9 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     });
 
     return (
-      <button
+            <button
         ref={setNodeRef}
-        type="button"
+              type="button"
         onClick={onAgregarBloque}
         className={`w-full px-4 py-2 text-sm rounded-md transition-colors ${
           isOver 
@@ -639,7 +685,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
         }`}
       >
         {isOver ? 'Soltar aquí para crear bloque' : '+ Agregar Bloque'}
-      </button>
+            </button>
     );
   }
 
@@ -699,6 +745,9 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                         type="text"
                         value={bloque.nombre}
             onChange={(e) => onActualizarNombreBloque(e.target.value)}
+            onMouseDown={(e) => e.stopPropagation()}
+            onFocus={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
                         className="font-medium text-gray-900 px-2 py-1 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
                         placeholder="Nombre del bloque"
                       />
@@ -706,6 +755,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                         <button
                           type="button"
               onClick={onAgregarEjercicio}
+              onMouseDown={(e) => e.stopPropagation()}
                           className="flex-1 sm:flex-none px-3 py-1 text-xs sm:text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                         >
                           + Ejercicio
@@ -714,6 +764,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                           <button
                             type="button"
                 onClick={onEliminarBloque}
+                onMouseDown={(e) => e.stopPropagation()}
                             className="flex-1 sm:flex-none px-3 py-1 text-xs sm:text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                           >
                             Eliminar
@@ -839,20 +890,26 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
       opacity: isDragging ? 0.5 : 1,
     };
 
+    // Prevenir que eventos de input propaguen y activen drag
+    const handleInputEvent = (e: React.MouseEvent | React.FocusEvent | React.KeyboardEvent) => {
+      e.stopPropagation();
+    };
+
     return (
       <div
         ref={setNodeRef}
         style={style}
         className={`bg-white rounded-md p-2 sm:p-3 border-2 transition-colors ${
           estaSeleccionado ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-        } ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        } ${isDragging ? 'cursor-grabbing' : ''}`}
       >
                           <div className="flex items-start gap-2 mb-2">
           <div
             {...attributes}
             {...listeners}
-            className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+            className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 select-none"
             title="Arrastrar para mover"
+            onMouseDown={(e) => e.stopPropagation()}
           >
             ⋮⋮
           </div>
@@ -860,6 +917,8 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                               type="checkbox"
                               checked={estaSeleccionado}
             onChange={onToggleSeleccion}
+            onMouseDown={handleInputEvent}
+            onFocus={handleInputEvent}
                               className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                             />
                           </div>
@@ -872,11 +931,13 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                                 <button
                                   type="button"
                 onClick={onAbrirCrearEjercicio}
+                onMouseDown={handleInputEvent}
                                   className="text-xs text-blue-600 hover:text-blue-700 underline"
                                 >
                                   + Crear nuevo
                                 </button>
                               </div>
+            <div onMouseDown={handleInputEvent} onFocus={handleInputEvent}>
                               <SearchableSelect
                                 options={ejercicios?.map(ej => ({
                                   value: ej._id || ej.id || '',
@@ -885,52 +946,74 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                                 value={ejercicios?.find(e => e.nombre === ejercicio.nombre && e.videoUrl === ejercicio.videoUrl)?._id || ejercicios?.find(e => e.nombre === ejercicio.nombre && e.videoUrl === ejercicio.videoUrl)?.id || ''}
                                 onChange={(value) => {
                                   if (value) {
-                  onSeleccionarEjercicio(value);
+                    onSeleccionarEjercicio(value);
                                   }
                                 }}
                                 placeholder="Buscar ejercicio..."
                                 required
                               />
+            </div>
                             </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Series *
-                              </label>
-                              <input
-                                type="number"
-                                value={ejercicio.series}
-              onChange={(e) => onActualizarEjercicio('series', parseInt(e.target.value) || 0)}
-                                min="1"
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Repeticiones *
-                              </label>
-                              <input
-                                type="number"
-                                value={ejercicio.repeticiones}
-              onChange={(e) => onActualizarEjercicio('repeticiones', parseInt(e.target.value) || 0)}
-                                min="1"
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
-                                Pausa (seg) *
-                              </label>
-                              <input
-                                type="number"
-                                value={ejercicio.pausa}
-              onChange={(e) => onActualizarEjercicio('pausa', parseInt(e.target.value) || 0)}
-                                min="0"
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                              />
-                            </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Series *
+            </label>
+            <input
+              type="number"
+              value={ejercicio.series || ''}
+              onChange={(e) => {
+                const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
+                onActualizarEjercicio('series', val);
+              }}
+              onMouseDown={handleInputEvent}
+              onFocus={handleInputEvent}
+              onClick={handleInputEvent}
+              data-ejercicio-id={`${diaIndex}-${bloqueIndex}-${ejercicioIndex}-series`}
+              min="1"
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Repeticiones *
+            </label>
+            <input
+              type="number"
+              value={ejercicio.repeticiones || ''}
+              onChange={(e) => {
+                const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
+                onActualizarEjercicio('repeticiones', val);
+              }}
+              onMouseDown={handleInputEvent}
+              onFocus={handleInputEvent}
+              onClick={handleInputEvent}
+              data-ejercicio-id={`${diaIndex}-${bloqueIndex}-${ejercicioIndex}-repeticiones`}
+              min="1"
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Pausa (seg) *
+            </label>
+            <input
+              type="number"
+              value={ejercicio.pausa || ''}
+              onChange={(e) => {
+                const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
+                onActualizarEjercicio('pausa', val);
+              }}
+              onMouseDown={handleInputEvent}
+              onFocus={handleInputEvent}
+              onClick={handleInputEvent}
+              data-ejercicio-id={`${diaIndex}-${bloqueIndex}-${ejercicioIndex}-pausa`}
+              min="0"
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
                           </div>
                           <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <div className="flex items-center text-xs text-gray-500">
@@ -940,6 +1023,10 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                                 step="0.5"
                                 value={ejercicio.peso ?? ''}
               onChange={(e) => onActualizarEjercicio('peso', e.target.value === '' ? null : parseFloat(e.target.value))}
+              onMouseDown={handleInputEvent}
+              onFocus={handleInputEvent}
+              onClick={handleInputEvent}
+              data-ejercicio-id={`${diaIndex}-${bloqueIndex}-${ejercicioIndex}-peso`}
                                 min="0"
                                 className="w-20 px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 placeholder="0"
@@ -949,6 +1036,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                             <button
                               type="button"
             onClick={onEliminarEjercicio}
+            onMouseDown={handleInputEvent}
                               className="px-2 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
                             >
                               Eliminar
@@ -1071,14 +1159,14 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
         <div className="bg-white shadow rounded-lg p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Días de la Rutina</h2>
-            <button
-              type="button"
+                <button
+                  type="button"
               onClick={agregarDia}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
-            >
+                >
               + Agregar Día
-            </button>
-          </div>
+                </button>
+              </div>
 
             {dias.map((dia, diaIndex) => {
               const diaId = `dia-${diaIndex}`;
@@ -1097,6 +1185,9 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                     type="text"
                     value={dia.nombre}
                     onChange={(e) => actualizarNombreDia(diaIndex, e.target.value)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onFocus={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
                     className="text-base sm:text-lg font-semibold text-gray-900 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
                     placeholder="Nombre del día"
                   />
@@ -1104,12 +1195,13 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                     <button
                       type="button"
                       onClick={() => eliminarDia(diaIndex)}
+                      onMouseDown={(e) => e.stopPropagation()}
                       className="px-3 py-1 text-xs sm:text-sm bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors w-full sm:w-auto"
                     >
                       Eliminar Día
                     </button>
                   )}
-                </div>
+            </div>
 
               {/* Bloques */}
               <div className="space-y-4">
@@ -1146,7 +1238,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                   diaIndex={diaIndex}
                   onAgregarBloque={() => agregarBloque(diaIndex)}
                 />
-              </div>
+        </div>
             </div>
             );
             })}

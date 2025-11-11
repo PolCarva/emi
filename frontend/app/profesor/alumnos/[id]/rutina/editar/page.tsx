@@ -66,8 +66,13 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
   const [activeId, setActiveId] = useState<string | null>(null);
   
   // Sensores para drag and drop
+  // Configurar delay para evitar activación accidental al escribir en inputs
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Requiere mover 8px antes de activar drag
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -252,6 +257,11 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     value: number | string
   ) => {
     if (!formData || !formData.dias) return;
+    
+    // Guardar el elemento activo antes del cambio
+    const activeElement = document.activeElement as HTMLInputElement | null;
+    const shouldRestoreFocus = activeElement && activeElement.tagName === 'INPUT';
+    
     const newDias = [...formData.dias];
     const newBloques = [...newDias[diaIndex].bloques];
     const newEjercicios = [...newBloques[bloqueIndex].ejercicios];
@@ -273,6 +283,32 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     newBloques[bloqueIndex] = { ...newBloques[bloqueIndex], ejercicios: newEjercicios };
     newDias[diaIndex] = { ...newDias[diaIndex], bloques: newBloques };
     setFormData({ ...formData, dias: newDias });
+    
+    // Guardar posición del scroll
+    const scrollY = window.scrollY;
+    
+    // Restaurar el focus y scroll después del re-render
+    if (shouldRestoreFocus && activeElement) {
+      requestAnimationFrame(() => {
+        // Restaurar scroll primero
+        window.scrollTo(0, scrollY);
+        
+        // Luego restaurar focus
+        const input = document.querySelector(`input[data-ejercicio-id="${diaIndex}-${bloqueIndex}-${ejercicioIndex}-${field}"]`) as HTMLInputElement;
+        if (input) {
+          input.focus();
+          // Restaurar la posición del cursor si es posible
+          if (activeElement.selectionStart !== null) {
+            input.setSelectionRange(activeElement.selectionStart, activeElement.selectionEnd || activeElement.selectionStart);
+          }
+        }
+      });
+    } else {
+      // Aún restaurar scroll aunque no haya focus
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
+    }
   };
 
   const moverEjercicio = (
@@ -841,19 +877,25 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
                 opacity: isDragging ? 0.5 : 1,
               };
 
+              // Prevenir que eventos de input propaguen y activen drag
+              const handleInputEvent = (e: React.MouseEvent | React.FocusEvent | React.KeyboardEvent) => {
+                e.stopPropagation();
+              };
+
                           return (
                 <div 
                   key={ejercicioIndex} 
                   ref={setNodeRef}
                   style={style}
-                  className={`bg-gray-50 rounded-lg p-4 border-2 transition-colors ${estaSeleccionado ? 'border-blue-500 bg-blue-100' : 'border-gray-200'} ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+                  className={`bg-gray-50 rounded-lg p-4 border-2 transition-colors ${estaSeleccionado ? 'border-blue-500 bg-blue-100' : 'border-gray-200'} ${isDragging ? 'cursor-grabbing' : ''}`}
                 >
                               <div className="flex items-start gap-2 mb-3">
                     <div
                       {...attributes}
                       {...listeners}
-                      className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+                      className="mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 select-none"
                       title="Arrastrar para mover"
+                      onMouseDown={(e) => e.stopPropagation()}
                     >
                       ⋮⋮
                     </div>
@@ -861,6 +903,8 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
                                   type="checkbox"
                                   checked={estaSeleccionado}
                       onChange={() => onToggleSeleccionEjercicio(ejercicioIndex)}
+                      onMouseDown={handleInputEvent}
+                      onFocus={handleInputEvent}
                                   className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                 />
                               </div>
@@ -929,8 +973,15 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
                                         <input
                                           type="number"
                                           min="1"
-                                          value={ejercicio.series}
-                              onChange={(e) => onEjercicioChange(ejercicioIndex, 'series', parseInt(e.target.value))}
+                                          value={ejercicio.series || ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
+                                            onEjercicioChange(ejercicioIndex, 'series', val);
+                                          }}
+                                          onMouseDown={handleInputEvent}
+                                          onFocus={handleInputEvent}
+                                          onClick={handleInputEvent}
+                                          data-ejercicio-id={`${diaIndex}-${bloqueIndex}-${ejercicioIndex}-series`}
                                           required
                                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
@@ -940,8 +991,15 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
                                         <input
                                           type="number"
                                           min="1"
-                                          value={ejercicio.repeticiones}
-                              onChange={(e) => onEjercicioChange(ejercicioIndex, 'repeticiones', parseInt(e.target.value))}
+                                          value={ejercicio.repeticiones || ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
+                                            onEjercicioChange(ejercicioIndex, 'repeticiones', val);
+                                          }}
+                                          onMouseDown={handleInputEvent}
+                                          onFocus={handleInputEvent}
+                                          onClick={handleInputEvent}
+                                          data-ejercicio-id={`${diaIndex}-${bloqueIndex}-${ejercicioIndex}-repeticiones`}
                                           required
                                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
@@ -953,7 +1011,11 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
                                           step="0.5"
                                           min="0"
                                           value={ejercicio.peso ?? ''}
-                              onChange={(e) => onEjercicioChange(ejercicioIndex, 'peso', e.target.value)}
+                                          onChange={(e) => onEjercicioChange(ejercicioIndex, 'peso', e.target.value === '' ? null : parseFloat(e.target.value) || null)}
+                                          onMouseDown={handleInputEvent}
+                                          onFocus={handleInputEvent}
+                                          onClick={handleInputEvent}
+                                          data-ejercicio-id={`${diaIndex}-${bloqueIndex}-${ejercicioIndex}-peso`}
                                           placeholder="Sin definir"
                                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
@@ -963,8 +1025,15 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
                                         <input
                                           type="number"
                                           min="0"
-                                          value={ejercicio.pausa}
-                              onChange={(e) => onEjercicioChange(ejercicioIndex, 'pausa', parseInt(e.target.value))}
+                                          value={ejercicio.pausa || ''}
+                                          onChange={(e) => {
+                                            const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
+                                            onEjercicioChange(ejercicioIndex, 'pausa', val);
+                                          }}
+                                          onMouseDown={handleInputEvent}
+                                          onFocus={handleInputEvent}
+                                          onClick={handleInputEvent}
+                                          data-ejercicio-id={`${diaIndex}-${bloqueIndex}-${ejercicioIndex}-pausa`}
                                           required
                                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
