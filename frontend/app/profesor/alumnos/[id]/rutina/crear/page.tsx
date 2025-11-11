@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { use } from 'react';
 import api from '@/lib/api';
 import type { Alumno } from '@/types';
+import SearchableSelect from '@/components/common/SearchableSelect';
 
 interface EjercicioProfesor {
   _id?: string;
@@ -436,23 +437,20 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                               <label className="block text-xs font-medium text-gray-700 mb-1">
                                 Ejercicio *
                               </label>
-                              <select
+                              <SearchableSelect
+                                options={ejercicios?.map(ej => ({
+                                  value: ej._id || ej.id || '',
+                                  label: ej.nombre
+                                })) || []}
                                 value={ejercicios?.find(e => e.nombre === ejercicio.nombre && e.videoUrl === ejercicio.videoUrl)?._id || ejercicios?.find(e => e.nombre === ejercicio.nombre && e.videoUrl === ejercicio.videoUrl)?.id || ''}
-                                onChange={(e) => {
-                                  if (e.target.value) {
-                                    seleccionarEjercicio(diaIndex, bloqueIndex, ejercicioIndex, e.target.value);
+                                onChange={(value) => {
+                                  if (value) {
+                                    seleccionarEjercicio(diaIndex, bloqueIndex, ejercicioIndex, value);
                                   }
                                 }}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Buscar ejercicio..."
                                 required
-                              >
-                                <option value="">Seleccionar ejercicio...</option>
-                                {ejercicios?.map((ej) => (
-                                  <option key={ej._id || ej.id} value={ej._id || ej.id}>
-                                    {ej.nombre}
-                                  </option>
-                                ))}
-                              </select>
+                              />
                             </div>
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">

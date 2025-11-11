@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { use } from 'react';
 import api from '@/lib/api';
 import type { Rutina, DiaRutina, Bloque } from '@/types';
+import SearchableSelect from '@/components/common/SearchableSelect';
 
 interface EjercicioProfesor {
   _id?: string;
@@ -480,32 +481,26 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
                                   <label className="block text-xs font-medium text-gray-700 mb-1">
                                     Ejercicio
                                   </label>
-                                  <select
-                                    value={ejercicioIdSeleccionado || ''}
-                                    onChange={(e) => {
-                                      if (e.target.value) {
-                                        handleEjercicioSeleccionar(diaIndex, bloqueIndex, ejercicioIndex, e.target.value);
-                                      }
-                                    }}
-                                    required
-                                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  >
-                                    {ejercicio.nombre && !ejercicioActual ? (
-                                      <option value="" disabled>
-                                        {ejercicio.nombre} (no disponible en tu biblioteca)
-                                      </option>
-                                    ) : (
-                                      <option value="">-- Seleccionar ejercicio --</option>
-                                    )}
-                                    {ejerciciosProfesor?.map((ej) => {
-                                      const ejId = ej._id || ej.id;
-                                      return (
-                                        <option key={ejId} value={ejId}>
-                                          {ej.nombre}
-                                        </option>
-                                      );
-                                    })}
-                                  </select>
+                                  {ejercicio.nombre && !ejercicioActual ? (
+                                    <div className="w-full px-2 py-1 text-sm border border-yellow-300 bg-yellow-50 rounded-md text-yellow-800">
+                                      {ejercicio.nombre} (no disponible en tu biblioteca)
+                                    </div>
+                                  ) : (
+                                    <SearchableSelect
+                                      options={ejerciciosProfesor?.map(ej => ({
+                                        value: ej._id || ej.id || '',
+                                        label: ej.nombre
+                                      })) || []}
+                                      value={ejercicioIdSeleccionado || ''}
+                                      onChange={(value) => {
+                                        if (value) {
+                                          handleEjercicioSeleccionar(diaIndex, bloqueIndex, ejercicioIndex, value);
+                                        }
+                                      }}
+                                      placeholder="Buscar ejercicio..."
+                                      required
+                                    />
+                                  )}
                                   {ejercicio.nombre && (
                                     <div className="mt-1">
                                       <p className="text-xs text-gray-500">
