@@ -21,8 +21,8 @@ export default function InvitationsPage() {
       setLoading(true);
       const response = await api.get('/api/admin/invitations');
       setInvitations(response.data.invitationLinks);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al cargar enlaces');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al cargar enlaces');
     } finally {
       setLoading(false);
     }
@@ -35,8 +35,8 @@ export default function InvitationsPage() {
       setInvitations([response.data.invitationLink, ...invitations]);
       setShowCreateForm(false);
       setExpiresInDays(7);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al crear enlace');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al crear enlace');
     } finally {
       setCreating(false);
     }
@@ -48,8 +48,8 @@ export default function InvitationsPage() {
     try {
       await api.delete(`/api/admin/invitations/${id}`);
       setInvitations(invitations.filter(inv => inv.id !== id));
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al eliminar enlace');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al eliminar enlace');
     }
   };
 

@@ -23,9 +23,11 @@ export default function LoginPage() {
       await login({ email, password });
       // Si el login es exitoso, la redirección se maneja en auth-context
       // No necesitamos hacer nada más aquí
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Asegurarse de que el error se muestre
-      const errorMessage = err?.response?.data?.error || err?.message || 'Error al iniciar sesión';
+      const errorMessage = (err as { response?: { data?: { error?: string }; message?: string } })?.response?.data?.error || 
+                          (err as { message?: string })?.message || 
+                          'Error al iniciar sesión';
       setError(errorMessage);
       setIsLoading(false);
     }

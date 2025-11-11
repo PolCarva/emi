@@ -17,7 +17,7 @@ export default function AlumnoDetailPage({ params }: { params: Promise<{ id: str
     },
   });
 
-  const { data: rutina, isLoading: loadingRutina } = useQuery<Rutina>({
+  const { data: rutina } = useQuery<Rutina>({
     queryKey: ['rutina', id],
     queryFn: async () => {
       const response = await api.get(`/api/profesor/rutinas/${id}`);

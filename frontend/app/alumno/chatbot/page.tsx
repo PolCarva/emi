@@ -27,7 +27,7 @@ export default function ChatbotPage() {
     onSuccess: (data) => {
       setMessages(prev => [...prev, { role: 'assistant', content: data.mensaje }]);
     },
-    onError: (error: any) => {
+    onError: () => {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'Lo siento, hubo un error al procesar tu mensaje. Por favor intenta de nuevo.'

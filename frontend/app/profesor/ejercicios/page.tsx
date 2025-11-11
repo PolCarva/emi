@@ -38,8 +38,8 @@ export default function EjerciciosPage() {
       setVideoUrl('');
       setError('');
     },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || 'Error al crear ejercicio');
+    onError: (err: unknown) => {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al crear ejercicio');
     },
   });
 
@@ -54,8 +54,8 @@ export default function EjerciciosPage() {
       setVideoUrl('');
       setError('');
     },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || 'Error al actualizar ejercicio');
+    onError: (err: unknown) => {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al actualizar ejercicio');
     },
   });
 
@@ -71,7 +71,7 @@ export default function EjerciciosPage() {
   const handleEdit = (ejercicio: EjercicioProfesor) => {
     setEditingEjercicio(ejercicio);
     setNombre(ejercicio.nombre);
-    setVideoUrl(ejercicio.videoUrl);
+    setVideoUrl(ejercicio.videoUrl || '');
     setShowForm(true);
     setError('');
   };

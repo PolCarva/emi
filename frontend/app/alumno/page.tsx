@@ -23,7 +23,6 @@ interface SemanaProgreso {
 
 export default function AlumnoRutinaPage() {
   const queryClient = useQueryClient();
-  const [updatingPeso, setUpdatingPeso] = useState<{[key: string]: boolean}>({});
   const [semanaSeleccionada, setSemanaSeleccionada] = useState<number>(1);
   const [diaSeleccionado, setDiaSeleccionado] = useState<number>(0);
   const [pesosLocales, setPesosLocales] = useState<{[key: string]: number | null}>({});
@@ -118,10 +117,13 @@ export default function AlumnoRutinaPage() {
   // Actualizar semana y día seleccionados cuando se calcula la actual
   useEffect(() => {
     if (calcularSemanaYDiaActual.semana && semanaSeleccionada === 1 && diaSeleccionado === 0) {
-      setSemanaSeleccionada(calcularSemanaYDiaActual.semana);
-      setDiaSeleccionado(calcularSemanaYDiaActual.dia);
+      // Usar setTimeout para evitar setState síncrono en effect
+      setTimeout(() => {
+        setSemanaSeleccionada(calcularSemanaYDiaActual.semana);
+        setDiaSeleccionado(calcularSemanaYDiaActual.dia);
+      }, 0);
     }
-  }, [calcularSemanaYDiaActual]);
+  }, [calcularSemanaYDiaActual, semanaSeleccionada, diaSeleccionado]);
 
   const updatePesoMutation = useMutation({
     mutationFn: async ({ 
@@ -137,18 +139,11 @@ export default function AlumnoRutinaPage() {
       peso: number | null;
       numeroSemana: number;
     }) => {
-      const key = `${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
-      setUpdatingPeso(prev => ({ ...prev, [key]: true }));
-      
-      try {
-        const response = await api.put(
-          `/api/alumno/rutina/ejercicio/${diaIndex}/${bloqueIndex}/${ejercicioIndex}/peso`,
-          { peso, numeroSemana }
-        );
-        return response.data;
-      } finally {
-        setUpdatingPeso(prev => ({ ...prev, [key]: false }));
-      }
+      const response = await api.put(
+        `/api/alumno/rutina/ejercicio/${diaIndex}/${bloqueIndex}/${ejercicioIndex}/peso`,
+        { peso, numeroSemana }
+      );
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rutina-alumno'] });
@@ -188,8 +183,9 @@ export default function AlumnoRutinaPage() {
 
   // Limpiar timers al desmontar
   useEffect(() => {
+    const timers = debounceTimers.current;
     return () => {
-      Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer));
+      Object.values(timers).forEach(timer => clearTimeout(timer));
     };
   }, []);
 
@@ -226,15 +222,17 @@ export default function AlumnoRutinaPage() {
     });
     
     // Limpiar pesos locales que no pertenecen a la semana actual
-    setPesosLocales(prev => {
-      const filtered: {[key: string]: number | null} = {};
-      Object.keys(prev).forEach(key => {
-        if (key.startsWith(`${semanaSeleccionada}-`)) {
-          filtered[key] = prev[key];
-        }
+    setTimeout(() => {
+      setPesosLocales(prev => {
+        const filtered: {[key: string]: number | null} = {};
+        Object.keys(prev).forEach(key => {
+          if (key.startsWith(`${semanaSeleccionada}-`)) {
+            filtered[key] = prev[key];
+          }
+        });
+        return filtered;
       });
-      return filtered;
-    });
+    }, 0);
   }, [semanaSeleccionada]);
 
   // Sincronizar pesos locales cuando cambian los datos del servidor (solo si no hay edición en curso)
@@ -419,8 +417,6 @@ export default function AlumnoRutinaPage() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">{bloque.nombre}</h3>
                 <div className="space-y-4">
                   {bloque.ejercicios.map((ejercicio, ejercicioIndex) => {
-                    const key = `${diaSeleccionado}-${bloqueIndex}-${ejercicioIndex}`;
-                    const isUpdating = updatingPeso[key] || false;
                     // Obtener peso de la semana/día actual (sin fallback a rutina)
                     const pesoEjercicio = obtenerPesoEjercicio(diaSeleccionado, bloqueIndex, ejercicioIndex);
                     const volumenCalculado = calcularVolumen(

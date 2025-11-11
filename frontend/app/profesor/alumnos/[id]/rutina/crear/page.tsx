@@ -46,6 +46,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
   const [edad, setEdad] = useState<number>(18);
   const [nivel, setNivel] = useState<'Principiante' | 'Intermedio' | 'Avanzado'>('Principiante');
   const [periodizacion, setPeriodizacion] = useState('');
+  const [semanaActual, setSemanaActual] = useState<number>(1);
   const [dias, setDias] = useState<DiaRutina[]>([
     {
       nombre: 'Día 1',
@@ -74,8 +75,25 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     },
   });
 
+  interface RutinaData {
+    nombre: string;
+    objetivo: string;
+    nivel: 'Principiante' | 'Intermedio' | 'Avanzado';
+    genero: 'Masculino' | 'Femenino' | 'Otro';
+    edad: number;
+    periodizacion: string;
+    semanaActual: number;
+    dias: Array<{
+      nombre: string;
+      bloques: Array<{
+        nombre: string;
+        ejercicios: EjercicioRutina[];
+      }>;
+    }>;
+  }
+
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: RutinaData) => {
       return await api.post('/api/profesor/rutinas', { ...data, alumnoId: id });
     },
     onSuccess: () => {
@@ -83,9 +101,10 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
       queryClient.invalidateQueries({ queryKey: ['rutina', id] });
       router.push(`/profesor/alumnos/${id}`);
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       console.error('Error al crear rutina:', err);
-      alert('Error al crear rutina: ' + (err.response?.data?.error || 'Error desconocido'));
+      const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error desconocido';
+      alert('Error al crear rutina: ' + errorMessage);
     },
   });
 
@@ -174,10 +193,13 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     bloqueIndex: number,
     ejercicioIndex: number,
     campo: keyof EjercicioRutina,
-    valor: any
+    valor: string | number | null
   ) => {
     const nuevosDias = [...dias];
-    (nuevosDias[diaIndex].bloques[bloqueIndex].ejercicios[ejercicioIndex] as any)[campo] = valor;
+    nuevosDias[diaIndex].bloques[bloqueIndex].ejercicios[ejercicioIndex] = {
+      ...nuevosDias[diaIndex].bloques[bloqueIndex].ejercicios[ejercicioIndex],
+      [campo]: valor
+    };
     setDias(nuevosDias);
   };
 
@@ -231,6 +253,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
       edad,
       nivel,
       periodizacion,
+      semanaActual,
       dias
     });
   };
@@ -271,7 +294,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
               </label>
               <select
                 value={genero}
-                onChange={(e) => setGenero(e.target.value as any)}
+                onChange={(e) => setGenero(e.target.value as 'Masculino' | 'Femenino' | 'Otro')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
@@ -313,7 +336,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
               </label>
               <select
                 value={nivel}
-                onChange={(e) => setNivel(e.target.value as any)}
+                onChange={(e) => setNivel(e.target.value as 'Principiante' | 'Intermedio' | 'Avanzado')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
@@ -497,7 +520,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                       ))}
                       {bloque.ejercicios.length === 0 && (
                         <p className="text-sm text-gray-500 text-center py-2">
-                          No hay ejercicios en este bloque. Haz clic en "+ Ejercicio" para agregar uno.
+                          No hay ejercicios en este bloque. Haz clic en &quot;+ Ejercicio&quot; para agregar uno.
                         </p>
                       )}
                     </div>

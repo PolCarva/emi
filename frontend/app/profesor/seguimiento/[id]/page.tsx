@@ -7,10 +7,31 @@ import { use } from 'react';
 import api from '@/lib/api';
 import type { Alumno, Rutina } from '@/types';
 
+interface DiaHistorial {
+  fecha: string;
+  ejercicios: Array<{
+    ejercicioId: string;
+    pesoReal: number;
+    repeticionesReal: number;
+    volumenReal: number;
+  }>;
+}
+
+interface SemanaHistorial {
+  numeroSemana: number;
+  dias: DiaHistorial[];
+}
+
+interface SeguimientoData {
+  alumno: Alumno;
+  historialSemanas: SemanaHistorial[];
+  pesosPorSemana: { [semana: number]: { [dia: number]: { [bloque: number]: { [ejercicio: number]: number } } } };
+  rutinaActual?: Rutina;
+}
+
 export default function SeguimientoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
-  const [updatingPeso, setUpdatingPeso] = useState<{[key: string]: boolean}>({});
   const [semanaSeleccionada, setSemanaSeleccionada] = useState<number>(1);
   const [pesosLocales, setPesosLocales] = useState<{[key: string]: number | null}>({});
   const debounceTimers = useRef<{[key: string]: NodeJS.Timeout}>({});
@@ -23,12 +44,7 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
     },
   });
 
-  const { data: seguimiento, isLoading } = useQuery<{
-    alumno: Alumno;
-    historialSemanas: any[];
-    pesosPorSemana: { [semana: number]: { [dia: number]: { [bloque: number]: { [ejercicio: number]: number } } } };
-    rutinaActual?: Rutina;
-  }>({
+  const { data: seguimiento, isLoading } = useQuery<SeguimientoData>({
     queryKey: ['seguimiento', id],
     queryFn: async () => {
       const response = await api.get(`/api/profesor/seguimiento/${id}`);
@@ -39,7 +55,7 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
   // Calcular la última y primera semana disponible
   const ultimaSemana = useMemo(() => {
     if (!seguimiento) return 1;
-    const semanasHistorial = seguimiento?.historialSemanas?.map((s: any) => s.numeroSemana) || [];
+    const semanasHistorial = seguimiento?.historialSemanas?.map((s) => s.numeroSemana) || [];
     const semanasPesos = Object.keys(seguimiento?.pesosPorSemana || {}).map(Number);
     const rutina = seguimiento?.rutinaActual;
     const semanaRutina = rutina?.semanaActual || 0;
@@ -50,7 +66,7 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
 
   const primeraSemana = useMemo(() => {
     if (!seguimiento) return 1;
-    const semanasHistorial = seguimiento?.historialSemanas?.map((s: any) => s.numeroSemana) || [];
+    const semanasHistorial = seguimiento?.historialSemanas?.map((s) => s.numeroSemana) || [];
     const semanasPesos = Object.keys(seguimiento?.pesosPorSemana || {}).map(Number);
     const rutina = seguimiento?.rutinaActual;
     const semanaRutina = rutina?.semanaActual || 0;
@@ -63,8 +79,10 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
   const [haInicializado, setHaInicializado] = useState(false);
   useEffect(() => {
     if (ultimaSemana > 1 && !haInicializado && seguimiento) {
-      setSemanaSeleccionada(ultimaSemana);
-      setHaInicializado(true);
+      setTimeout(() => {
+        setSemanaSeleccionada(ultimaSemana);
+        setHaInicializado(true);
+      }, 0);
     }
   }, [ultimaSemana, haInicializado, seguimiento]);
 
@@ -82,18 +100,11 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
       peso: number | null;
       numeroSemana: number;
     }) => {
-      const key = `${numeroSemana}-${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
-      setUpdatingPeso(prev => ({ ...prev, [key]: true }));
-      
-      try {
-        const response = await api.put(
-          `/api/profesor/seguimiento/${id}/ejercicio/${diaIndex}/${bloqueIndex}/${ejercicioIndex}/peso`,
-          { peso, numeroSemana }
-        );
-        return response.data;
-      } finally {
-        setUpdatingPeso(prev => ({ ...prev, [key]: false }));
-      }
+      const response = await api.put(
+        `/api/profesor/seguimiento/${id}/ejercicio/${diaIndex}/${bloqueIndex}/${ejercicioIndex}/peso`,
+        { peso, numeroSemana }
+      );
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['seguimiento', id] });
@@ -132,8 +143,9 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
 
   // Limpiar timers al desmontar
   useEffect(() => {
+    const timers = debounceTimers.current;
     return () => {
-      Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer));
+      Object.values(timers).forEach(timer => clearTimeout(timer));
     };
   }, []);
 
@@ -212,15 +224,15 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
 
   // Organizar historial por ejercicio (debe estar antes de cualquier return)
   const historialPorEjercicio = useMemo(() => {
-    if (!seguimiento?.historialSemanas) return {};
+    if (!seguimiento || !seguimiento.historialSemanas) return {};
 
     const ejerciciosMap: { [ejercicioId: string]: Array<{ semana: number; peso: number; repeticiones: number; volumen: number; fecha: string }> } = {};
 
     seguimiento.historialSemanas
-      .sort((a: any, b: any) => a.numeroSemana - b.numeroSemana) // Ordenar por semana
-      .forEach((semana: any) => {
-        semana.dias?.forEach((dia: any) => {
-          dia.ejercicios?.forEach((ejercicio: any) => {
+      .sort((a, b) => a.numeroSemana - b.numeroSemana) // Ordenar por semana
+      .forEach((semana) => {
+        semana.dias?.forEach((dia) => {
+          dia.ejercicios?.forEach((ejercicio) => {
             const ejercicioId = ejercicio.ejercicioId || 'desconocido';
             if (!ejerciciosMap[ejercicioId]) {
               ejerciciosMap[ejercicioId] = [];
@@ -237,12 +249,12 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
       });
 
     return ejerciciosMap;
-  }, [seguimiento?.historialSemanas]);
+  }, [seguimiento]);
 
   // Calcular datos derivados (antes del return condicional)
   const rutina = seguimiento?.rutinaActual;
   const pesosPorSemana = seguimiento?.pesosPorSemana || {};
-  const semanasHistorial = seguimiento?.historialSemanas?.map((s: any) => s.numeroSemana) || [];
+  const semanasHistorial = seguimiento?.historialSemanas?.map((s) => s.numeroSemana) || [];
   const semanasPesos = Object.keys(pesosPorSemana).map(Number);
   const ultimaSemanaConDatos = Math.max(...[...semanasHistorial, ...semanasPesos], 0);
   const todasLasSemanas = rutina 
@@ -312,9 +324,6 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
       {rutina && todasLasSemanas.length > 0 ? (
         <div className="space-y-6">
           {todasLasSemanas.filter(s => s === semanaSeleccionada).map((numeroSemana) => {
-            const semanaHistorial = seguimiento?.historialSemanas?.find(s => s.numeroSemana === numeroSemana);
-            const pesosSemana = pesosPorSemana[numeroSemana] || {};
-
             return (
               <div key={numeroSemana} className="bg-white shadow rounded-lg overflow-hidden">
                 <div className="bg-blue-600 px-6 py-4">
@@ -330,25 +339,23 @@ export default function SeguimientoPage({ params }: { params: Promise<{ id: stri
                       Rutina - Pesos por Día
                     </h3>
                     <div className="space-y-4">
-                      {rutina.dias.map((dia: any, diaIndex: number) => {
+                      {rutina.dias.map((dia, diaIndex: number) => {
                         return (
                           <div key={diaIndex} className="border border-gray-200 rounded-lg p-3 sm:p-4">
                             <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">
                               {dia.nombre} (Día {diaIndex + 1})
                             </h4>
                             <div className="space-y-4">
-                              {dia.bloques.map((bloque: any, bloqueIndex: number) => {
+                              {dia.bloques.map((bloque, bloqueIndex: number) => {
                                 return (
                                   <div key={bloqueIndex} className="ml-0 sm:ml-4 border-l-0 sm:border-l-2 border-blue-200 pl-0 sm:pl-4">
                                     <h5 className="text-xs sm:text-sm font-medium text-gray-700 mb-2">
                                       {bloque.nombre}
                                     </h5>
                                     <div className="space-y-2">
-                                      {bloque.ejercicios.map((ejercicio: any, ejercicioIndex: number) => {
+                                      {bloque.ejercicios.map((ejercicio, ejercicioIndex: number) => {
                                         const peso = obtenerPesoEjercicio(diaIndex, bloqueIndex, ejercicioIndex, numeroSemana);
                                         const volumen = calcularVolumen(ejercicio.series, ejercicio.repeticiones, peso);
-                                        const key = `${numeroSemana}-${diaIndex}-${bloqueIndex}-${ejercicioIndex}`;
-                                        const isUpdating = updatingPeso[key] || false;
 
                                         return (
                                           <div key={ejercicioIndex} className="bg-gray-50 rounded p-2 sm:p-3 text-xs sm:text-sm">

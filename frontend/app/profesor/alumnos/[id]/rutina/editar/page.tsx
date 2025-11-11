@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { use } from 'react';
 import api from '@/lib/api';
-import type { Rutina, DiaRutina, Bloque, Ejercicio } from '@/types';
+import type { Rutina, DiaRutina, Bloque } from '@/types';
 
 interface EjercicioProfesor {
   _id?: string;
@@ -41,30 +41,33 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     if (rutina) {
-      setFormData({
-        nombre: rutina.nombre,
-        objetivo: rutina.objetivo,
-        nivel: rutina.nivel,
-        genero: rutina.genero,
-        edad: rutina.edad,
-        periodizacion: rutina.periodizacion,
-        semanaActual: rutina.semanaActual,
-        dias: rutina.dias.map(dia => ({
-          nombre: dia.nombre,
-          bloques: dia.bloques.map(bloque => ({
-            nombre: bloque.nombre,
-            ejercicios: bloque.ejercicios.map(ej => ({
-              nombre: ej.nombre,
-              videoUrl: ej.videoUrl,
-              series: ej.series,
-              repeticiones: ej.repeticiones,
-              peso: ej.peso,
-              pausa: ej.pausa,
-              volumen: ej.volumen
+      // Usar setTimeout para evitar setState síncrono en effect
+      setTimeout(() => {
+        setFormData({
+          nombre: rutina.nombre,
+          objetivo: rutina.objetivo,
+          nivel: rutina.nivel,
+          genero: rutina.genero,
+          edad: rutina.edad,
+          periodizacion: rutina.periodizacion,
+          semanaActual: rutina.semanaActual,
+          dias: rutina.dias.map(dia => ({
+            nombre: dia.nombre,
+            bloques: dia.bloques.map(bloque => ({
+              nombre: bloque.nombre,
+              ejercicios: bloque.ejercicios.map(ej => ({
+                nombre: ej.nombre,
+                videoUrl: ej.videoUrl,
+                series: ej.series,
+                repeticiones: ej.repeticiones,
+                peso: ej.peso,
+                pausa: ej.pausa,
+                volumen: ej.volumen
+              }))
             }))
           }))
-        }))
-      });
+        });
+      }, 0);
     }
   }, [rutina]);
 
@@ -79,25 +82,26 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
       alert('Rutina actualizada correctamente');
       router.push(`/profesor/alumnos/${id}`);
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       console.error('Error al actualizar rutina:', err);
-      alert('Error al actualizar rutina: ' + (err.response?.data?.error || 'Error desconocido'));
+      const errorMessage = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error desconocido';
+      alert('Error al actualizar rutina: ' + errorMessage);
     },
   });
 
-  const handleInputChange = (field: keyof Rutina, value: any) => {
+  const handleInputChange = (field: keyof Rutina, value: string | number) => {
     if (!formData) return;
     setFormData({ ...formData, [field]: value });
   };
 
-  const handleDiaChange = (diaIndex: number, field: keyof DiaRutina, value: any) => {
+  const handleDiaChange = (diaIndex: number, field: keyof DiaRutina, value: string) => {
     if (!formData || !formData.dias) return;
     const newDias = [...formData.dias];
     newDias[diaIndex] = { ...newDias[diaIndex], [field]: value };
     setFormData({ ...formData, dias: newDias });
   };
 
-  const handleBloqueChange = (diaIndex: number, bloqueIndex: number, field: keyof Bloque, value: any) => {
+  const handleBloqueChange = (diaIndex: number, bloqueIndex: number, field: keyof Bloque, value: string) => {
     if (!formData || !formData.dias) return;
     const newDias = [...formData.dias];
     const newBloques = [...newDias[diaIndex].bloques];
@@ -127,7 +131,7 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     newEjercicios[ejercicioIndex] = {
       ...newEjercicios[ejercicioIndex],
       nombre: ejercicioSeleccionado.nombre,
-      videoUrl: ejercicioSeleccionado.videoUrl,
+      videoUrl: ejercicioSeleccionado.videoUrl ?? null,
       // Mantener series, repeticiones, peso y pausa existentes
     };
     
@@ -141,7 +145,7 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     bloqueIndex: number,
     ejercicioIndex: number,
     field: 'series' | 'repeticiones' | 'peso' | 'pausa',
-    value: any
+    value: number | string
   ) => {
     if (!formData || !formData.dias) return;
     const newDias = [...formData.dias];
@@ -150,12 +154,12 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     const ejercicio = { ...newEjercicios[ejercicioIndex] };
     
     if (field === 'peso') {
-      ejercicio.peso = value === '' ? null : parseFloat(value) || null;
+      ejercicio.peso = value === '' ? null : parseFloat(String(value)) || null;
       ejercicio.volumen = ejercicio.peso !== null && ejercicio.peso !== undefined
         ? ejercicio.series * ejercicio.repeticiones * ejercicio.peso
         : 0;
     } else {
-      (ejercicio as any)[field] = value;
+      ejercicio[field] = typeof value === 'number' ? value : parseInt(String(value));
       if ((field === 'series' || field === 'repeticiones') && ejercicio.peso !== null) {
         ejercicio.volumen = ejercicio.series * ejercicio.repeticiones * (ejercicio.peso || 0);
       }
@@ -203,7 +207,7 @@ export default function EditarRutinaPage({ params }: { params: Promise<{ id: str
     
     newBloques[bloqueIndex].ejercicios.push({
       nombre: primerEjercicio?.nombre || '',
-      videoUrl: primerEjercicio?.videoUrl || '',
+      videoUrl: primerEjercicio?.videoUrl ?? null,
       series: 3,
       repeticiones: 10,
       peso: null,

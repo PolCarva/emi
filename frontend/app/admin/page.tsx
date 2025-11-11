@@ -24,8 +24,8 @@ export default function AdminDashboard() {
 
       setStats(statsResponse.data.stats);
       setProfesores(profesoresResponse.data.profesores);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al cargar datos del dashboard');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al cargar datos del dashboard');
     } finally {
       setLoading(false);
     }

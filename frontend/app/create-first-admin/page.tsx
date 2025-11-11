@@ -30,8 +30,8 @@ export default function CreateFirstAdminPage() {
       localStorage.setItem('emi-role', response.data.role);
 
       router.push('/admin');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al crear administrador');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al crear administrador');
     } finally {
       setIsLoading(false);
     }

@@ -23,18 +23,34 @@ export default function Home() {
           // Usuario no autenticado, verificar si hay admins
           setCheckingAdmins(true);
           try {
-            const response = await api.get('/api/admin/dashboard');
+            // Intentar verificar si hay admins (sin token, debería dar 401/403)
+            await api.get('/api/admin/dashboard');
             // Si hay respuesta, significa que hay admins
             router.push('/login');
-          } catch (error: any) {
-            // Si no hay respuesta o es error 403, significa que no hay admins
-            if (error.response?.status === 403 || error.response?.status === 401) {
-              router.push('/create-first-admin');
-            } else {
+          } catch (error: unknown) {
+            // Si no hay respuesta o es error 403/401, significa que no hay admins o requiere auth
+            const status = (error as { response?: { status?: number } })?.response?.status;
+            const isNetworkError = !(error as { response?: { status?: number } })?.response;
+            const isCorsError = (error as { message?: string })?.message?.includes('CORS') || 
+                               (error as { code?: string })?.code === 'ERR_NETWORK';
+            
+            // Si es error de red o CORS, redirigir a login (asumimos que hay admins)
+            if (isNetworkError || isCorsError) {
+              console.warn('Error de conexión con el backend, redirigiendo a login');
               router.push('/login');
+            } else if (status === 403 || status === 401) {
+              // 401/403 significa que requiere autenticación, así que hay sistema configurado
+              router.push('/login');
+            } else if (status === 404) {
+              // 404 significa que la ruta no existe, redirigir a login
+              router.push('/login');
+            } else {
+              // Otros errores, intentar crear admin
+              router.push('/create-first-admin');
             }
+          } finally {
+            setCheckingAdmins(false);
           }
-          setCheckingAdmins(false);
         }
       }
     };

@@ -29,10 +29,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedRole = localStorage.getItem('emi-role');
 
     if (token && savedUser && savedRole) {
-      setUser(JSON.parse(savedUser));
-      setRole(savedRole as 'profesor' | 'alumno' | 'admin');
+      // Usar setTimeout para evitar setState síncrono en effect
+      setTimeout(() => {
+        setUser(JSON.parse(savedUser));
+        setRole(savedRole as 'profesor' | 'alumno' | 'admin');
+        setIsLoading(false);
+      }, 0);
+    } else {
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 0);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
@@ -54,9 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         router.push('/alumno');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Asegurarse de que el error se propague correctamente
-      const errorMessage = error?.response?.data?.error || error?.message || 'Error al iniciar sesión';
+      const errorMessage = (error as { response?: { data?: { error?: string }; message?: string } })?.response?.data?.error || 
+                          (error as { message?: string })?.message || 
+                          'Error al iniciar sesión';
       throw new Error(errorMessage);
     }
   };
@@ -80,8 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         router.push('/alumno');
       }
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Error al registrarse');
+    } catch (error: unknown) {
+      const errorMessage = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Error al registrarse';
+      throw new Error(errorMessage);
     }
   };
 
