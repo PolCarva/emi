@@ -120,10 +120,50 @@ const deleteEjercicio = async (req, res) => {
   }
 };
 
+// Eliminar múltiples ejercicios
+const deleteMultipleEjercicios = async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Se requiere un array de IDs' });
+    }
+
+    const profesor = await Profesor.findById(req.userId);
+    
+    // Filtrar ejercicios que existen y pertenecen al profesor
+    const ejerciciosAEliminar = ids.filter(id => {
+      return profesor.ejercicios.some(
+        ej => ej._id.toString() === id
+      );
+    });
+
+    if (ejerciciosAEliminar.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron ejercicios para eliminar' });
+    }
+
+    // Eliminar ejercicios
+    profesor.ejercicios = profesor.ejercicios.filter(
+      ej => !ejerciciosAEliminar.includes(ej._id.toString())
+    );
+    
+    await profesor.save();
+
+    res.json({ 
+      message: `${ejerciciosAEliminar.length} ejercicio(s) eliminado(s) correctamente`,
+      eliminados: ejerciciosAEliminar.length
+    });
+  } catch (error) {
+    console.error('Error al eliminar ejercicios:', error);
+    res.status(500).json({ error: 'Error al eliminar ejercicios' });
+  }
+};
+
 module.exports = {
   getEjercicios,
   createEjercicio,
   updateEjercicio,
-  deleteEjercicio
+  deleteEjercicio,
+  deleteMultipleEjercicios
 };
 

@@ -5,7 +5,8 @@ const {
   getEjercicios,
   createEjercicio,
   updateEjercicio,
-  deleteEjercicio
+  deleteEjercicio,
+  deleteMultipleEjercicios
 } = require('../controllers/profesorEjerciciosController');
 const { authenticate, requireProfesor } = require('../middleware/auth');
 
@@ -26,6 +27,7 @@ router.get('/', getEjercicios);
 router.post('/', ejercicioValidation, createEjercicio);
 router.put('/:id', ejercicioValidation, updateEjercicio);
 router.delete('/:id', deleteEjercicio);
+router.delete('/multiple', deleteMultipleEjercicios);
 
 module.exports = router;
 
