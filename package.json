@@ -1,0 +1,13 @@
+{
+  "name": "emi",
+  "version": "1.0.0",
+  "description": "Plataforma Web de Gestión de Rutinas - EMI",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"backend,frontend\" -c \"blue,green\" \"cd backend && npm run dev\" \"cd frontend && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

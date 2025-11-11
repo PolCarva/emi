@@ -173,7 +173,7 @@ export default function HistorialPage() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Anterior
+            <span className="hidden sm:block">Anterior</span>
           </button>
 
           <div className="flex items-center gap-4">
@@ -192,7 +192,7 @@ export default function HistorialPage() {
             disabled={semanaSeleccionada >= Math.max(semanaMaxima, calcularSemanaActual)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
-            Siguiente
+            <span className="hidden sm:block">Siguiente</span>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -200,6 +200,119 @@ export default function HistorialPage() {
         </div>
       </div>
 
+      {/* Contenido de la semana */}
+      {semanaActual && semanaActual.dias && semanaActual.dias.length > 0 ? (
+        <div className="space-y-6">
+          {semanaActual.dias
+            .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
+            .map((dia, diaIndex) => {
+              const fechaDia = new Date(dia.fecha);
+              const hoy = new Date();
+              hoy.setHours(0, 0, 0, 0);
+              fechaDia.setHours(0, 0, 0, 0);
+              
+              const esHoy = fechaDia.getTime() === hoy.getTime();
+              const esPasado = fechaDia.getTime() < hoy.getTime();
+              const esFuturo = fechaDia.getTime() > hoy.getTime();
+
+              return (
+                <div key={diaIndex} className="bg-white shadow rounded-lg overflow-hidden">
+                  <div className={`px-6 py-4 ${esHoy ? 'bg-green-600' : esPasado ? 'bg-gray-600' : 'bg-blue-600'}`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-xl font-bold text-white">
+                          {fechaDia.toLocaleDateString('es-ES', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </h3>
+                        {esHoy && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-2">
+                            Hoy
+                          </span>
+                        )}
+                        {esPasado && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mt-2">
+                            Pasado
+                          </span>
+                        )}
+                        {esFuturo && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-2">
+                            Próximo
+                          </span>
+                        )}
+                      </div>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white bg-opacity-20 text-white">
+                        {dia.ejercicios.length} ejercicio{dia.ejercicios.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    {dia.observaciones && (
+                      <p className="text-white text-sm mt-2 opacity-90">{dia.observaciones}</p>
+                    )}
+                  </div>
+                  
+                  <div className="p-6">
+                    <div className="space-y-3">
+                      {dia.ejercicios.map((ejercicio, ejIndex) => (
+                        <div key={ejIndex} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                          <div className="mb-2">
+                            <p className="font-medium text-gray-900">{ejercicio.ejercicioId}</p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-500 text-sm">Peso:</span>
+                              <span className="font-semibold text-gray-900">{ejercicio.pesoReal} kg</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-500 text-sm">Repeticiones:</span>
+                              <span className="font-semibold text-gray-900">{ejercicio.repeticionesReal}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-500 text-sm">Volumen:</span>
+                              <span className="font-semibold text-blue-600">{ejercicio.volumenReal.toLocaleString()} kg</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      ) : semanaSeleccionada === calcularSemanaActual ? (
+        <div className="bg-white shadow rounded-lg p-12 text-center">
+          <p className="text-gray-500 mb-2">Esta semana aún no tiene registros</p>
+          <p className="text-sm text-gray-400 mb-4">Comienza a registrar tu progreso</p>
+          <a
+            href="/alumno/progreso"
+            className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+          >
+            Registrar Progreso
+          </a>
+        </div>
+      ) : (
+        <div className="bg-white shadow rounded-lg p-12 text-center">
+          <p className="text-gray-500">No hay registros para la semana {semanaSeleccionada}</p>
+        </div>
+      )}
+
+      {/* Mensaje si no hay progreso en absoluto */}
+      {(!progreso || progreso.length === 0) && (
+        <div className="bg-white shadow rounded-lg p-12 text-center">
+          <p className="text-gray-500 mb-4">Aún no has registrado ningún progreso</p>
+          <a
+            href="/alumno/progreso"
+            className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+          >
+            Registrar primer progreso
+          </a>
+        </div>
+      )}
+
+      
       {/* Sección de gráficas de progreso por ejercicio */}
       {Object.keys(historialPorEjercicio).length > 0 && (
         <div className="mb-8 bg-white shadow rounded-lg p-4 sm:p-6">
@@ -330,117 +443,6 @@ export default function HistorialPage() {
         </div>
       )}
 
-      {/* Contenido de la semana */}
-      {semanaActual && semanaActual.dias && semanaActual.dias.length > 0 ? (
-        <div className="space-y-6">
-          {semanaActual.dias
-            .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
-            .map((dia, diaIndex) => {
-              const fechaDia = new Date(dia.fecha);
-              const hoy = new Date();
-              hoy.setHours(0, 0, 0, 0);
-              fechaDia.setHours(0, 0, 0, 0);
-              
-              const esHoy = fechaDia.getTime() === hoy.getTime();
-              const esPasado = fechaDia.getTime() < hoy.getTime();
-              const esFuturo = fechaDia.getTime() > hoy.getTime();
-
-              return (
-                <div key={diaIndex} className="bg-white shadow rounded-lg overflow-hidden">
-                  <div className={`px-6 py-4 ${esHoy ? 'bg-green-600' : esPasado ? 'bg-gray-600' : 'bg-blue-600'}`}>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="text-xl font-bold text-white">
-                          {fechaDia.toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </h3>
-                        {esHoy && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-2">
-                            Hoy
-                          </span>
-                        )}
-                        {esPasado && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 mt-2">
-                            Pasado
-                          </span>
-                        )}
-                        {esFuturo && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-2">
-                            Próximo
-                          </span>
-                        )}
-                      </div>
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white bg-opacity-20 text-white">
-                        {dia.ejercicios.length} ejercicio{dia.ejercicios.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    {dia.observaciones && (
-                      <p className="text-white text-sm mt-2 opacity-90">{dia.observaciones}</p>
-                    )}
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="space-y-3">
-                      {dia.ejercicios.map((ejercicio, ejIndex) => (
-                        <div key={ejIndex} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                          <div className="mb-2">
-                            <p className="font-medium text-gray-900">{ejercicio.ejercicioId}</p>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-500 text-sm">Peso:</span>
-                              <span className="font-semibold text-gray-900">{ejercicio.pesoReal} kg</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-500 text-sm">Repeticiones:</span>
-                              <span className="font-semibold text-gray-900">{ejercicio.repeticionesReal}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-500 text-sm">Volumen:</span>
-                              <span className="font-semibold text-blue-600">{ejercicio.volumenReal.toLocaleString()} kg</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      ) : semanaSeleccionada === calcularSemanaActual ? (
-        <div className="bg-white shadow rounded-lg p-12 text-center">
-          <p className="text-gray-500 mb-2">Esta semana aún no tiene registros</p>
-          <p className="text-sm text-gray-400 mb-4">Comienza a registrar tu progreso</p>
-          <a
-            href="/alumno/progreso"
-            className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-          >
-            Registrar Progreso
-          </a>
-        </div>
-      ) : (
-        <div className="bg-white shadow rounded-lg p-12 text-center">
-          <p className="text-gray-500">No hay registros para la semana {semanaSeleccionada}</p>
-        </div>
-      )}
-
-      {/* Mensaje si no hay progreso en absoluto */}
-      {(!progreso || progreso.length === 0) && (
-        <div className="bg-white shadow rounded-lg p-12 text-center">
-          <p className="text-gray-500 mb-4">Aún no has registrado ningún progreso</p>
-          <a
-            href="/alumno/progreso"
-            className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-          >
-            Registrar primer progreso
-          </a>
-        </div>
-      )}
     </div>
   );
 }
