@@ -15,7 +15,6 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  useDroppable,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -481,7 +480,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     setActiveId(event.active.id as string);
   };
 
-  // Manejar final del drag (drop)
+  // Manejar final del drag (drop) - solo permite reordenar dentro del mismo bloque
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveId(null);
@@ -491,12 +490,11 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Parsear IDs: formato "ejercicio-{diaIndex}-{bloqueIndex}-{ejercicioIndex}" o "bloque-{diaIndex}-{bloqueIndex}"
+    // Parsear IDs: formato "ejercicio-{diaIndex}-{bloqueIndex}-{ejercicioIndex}"
     const parseEjercicioId = (id: string) => {
       const match = id.match(/^ejercicio-(\d+)-(\d+)-(\d+)$/);
       if (match) {
         return {
-          tipo: 'ejercicio' as const,
           diaIndex: parseInt(match[1]),
           bloqueIndex: parseInt(match[2]),
           ejercicioIndex: parseInt(match[3]),
@@ -505,123 +503,22 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
       return null;
     };
 
-    const parseBloqueId = (id: string) => {
-      const match = id.match(/^bloque-(\d+)-(\d+)$/);
-      if (match) {
-        return {
-          tipo: 'bloque' as const,
-          diaIndex: parseInt(match[1]),
-          bloqueIndex: parseInt(match[2]),
-        };
-      }
-      return null;
-    };
-
     const activeData = parseEjercicioId(activeId);
-    if (!activeData) return;
+    const overData = parseEjercicioId(overId);
+    
+    if (!activeData || !overData) return;
 
-    // Si se suelta sobre otro ejercicio, mover dentro del mismo bloque o a otro bloque
-    const overEjercicioData = parseEjercicioId(overId);
-    if (overEjercicioData) {
+    // Solo permitir reordenar si es el mismo bloque
+    if (activeData.diaIndex === overData.diaIndex && 
+        activeData.bloqueIndex === overData.bloqueIndex) {
       const nuevosDias = [...dias];
-      
-      // Si es el mismo bloque, solo reordenar
-      if (activeData.diaIndex === overEjercicioData.diaIndex && 
-          activeData.bloqueIndex === overEjercicioData.bloqueIndex) {
-        const bloque = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex];
-        const ejercicios = arrayMove(
-          bloque.ejercicios,
-          activeData.ejercicioIndex,
-          overEjercicioData.ejercicioIndex
-        );
-        nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios = ejercicios;
-      } else {
-        // Mover a otro bloque
-        const ejercicio = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios[activeData.ejercicioIndex];
-        nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios.splice(activeData.ejercicioIndex, 1);
-        nuevosDias[overEjercicioData.diaIndex].bloques[overEjercicioData.bloqueIndex].ejercicios.splice(overEjercicioData.ejercicioIndex, 0, ejercicio);
-      }
-      
-      setDias(nuevosDias);
-      return;
-    }
-
-    // Si se suelta sobre un bloque
-    const overBloqueData = parseBloqueId(overId);
-    if (overBloqueData) {
-      const nuevosDias = [...dias];
-      
-      // Si es el mismo bloque, no hacer nada (ya se maneja arriba)
-      if (activeData.diaIndex === overBloqueData.diaIndex && 
-          activeData.bloqueIndex === overBloqueData.bloqueIndex) {
-        return;
-      }
-
-      // Mover ejercicio a otro bloque
-      const ejercicio = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios[activeData.ejercicioIndex];
-      nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios.splice(activeData.ejercicioIndex, 1);
-      nuevosDias[overBloqueData.diaIndex].bloques[overBloqueData.bloqueIndex].ejercicios.push(ejercicio);
-      
-      setDias(nuevosDias);
-      return;
-    }
-
-    // Si se suelta sobre un área de día (crear nuevo bloque)
-    const parseDiaId = (id: string) => {
-      const match = id.match(/^dia-(\d+)$/);
-      if (match) {
-        return {
-          tipo: 'dia' as const,
-          diaIndex: parseInt(match[1]),
-        };
-      }
-      return null;
-    };
-
-    const overDiaData = parseDiaId(overId);
-    if (overDiaData) {
-      const nuevosDias = [...dias];
-      
-      // Crear nuevo bloque en el día destino
-      const ejercicio = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios[activeData.ejercicioIndex];
-      nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios.splice(activeData.ejercicioIndex, 1);
-      
-      const nuevoBloque = {
-        nombre: `Bloque ${nuevosDias[overDiaData.diaIndex].bloques.length + 1}`,
-        ejercicios: [ejercicio]
-      };
-      nuevosDias[overDiaData.diaIndex].bloques.push(nuevoBloque);
-      
-      setDias(nuevosDias);
-      return;
-    }
-
-    // Si se suelta sobre el botón "Agregar Bloque"
-    const parseAgregarBloqueId = (id: string) => {
-      const match = id.match(/^agregar-bloque-(\d+)$/);
-      if (match) {
-        return {
-          tipo: 'agregar-bloque' as const,
-          diaIndex: parseInt(match[1]),
-        };
-      }
-      return null;
-    };
-
-    const overAgregarBloqueData = parseAgregarBloqueId(overId);
-    if (overAgregarBloqueData) {
-      const nuevosDias = [...dias];
-      
-      // Crear nuevo bloque con el ejercicio arrastrado
-      const ejercicio = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios[activeData.ejercicioIndex];
-      nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios.splice(activeData.ejercicioIndex, 1);
-      
-      const nuevoBloque = {
-        nombre: `Bloque ${nuevosDias[overAgregarBloqueData.diaIndex].bloques.length + 1}`,
-        ejercicios: [ejercicio]
-      };
-      nuevosDias[overAgregarBloqueData.diaIndex].bloques.push(nuevoBloque);
-      
+      const bloque = nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex];
+      const ejercicios = arrayMove(
+        bloque.ejercicios,
+        activeData.ejercicioIndex,
+        overData.ejercicioIndex
+      );
+      nuevosDias[activeData.diaIndex].bloques[activeData.bloqueIndex].ejercicios = ejercicios;
       setDias(nuevosDias);
     }
   };
@@ -679,32 +576,9 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     });
   };
 
-  // Componente para botón "Agregar Bloque" droppable
-  function DroppableAgregarBloque({ diaIndex, onAgregarBloque }: { diaIndex: number; onAgregarBloque: () => void }) {
-    const agregarBloqueId = `agregar-bloque-${diaIndex}`;
-    const { setNodeRef, isOver } = useDroppable({
-      id: agregarBloqueId,
-    });
 
-    return (
-            <button
-        ref={setNodeRef}
-              type="button"
-        onClick={onAgregarBloque}
-        className={`w-full px-4 py-2 text-sm rounded-md transition-colors ${
-          isOver 
-            ? 'bg-blue-500 text-white border-2 border-blue-600' 
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-        }`}
-      >
-        {isOver ? 'Soltar aquí para crear bloque' : '+ Agregar Bloque'}
-            </button>
-    );
-  }
-
-  // Componente para bloque droppable
-  interface DroppableBloqueProps {
-    id: string;
+  // Componente para bloque
+  interface BloqueProps {
     bloque: Bloque;
     bloqueIndex: number;
     diaIndex: number;
@@ -724,8 +598,7 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     puedeEliminarBloque: boolean;
   }
 
-  function DroppableBloque({
-    id,
+  function BloqueComponent({
     bloque,
     bloqueIndex,
     diaIndex,
@@ -743,16 +616,9 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
     onAbrirCrearEjercicio,
     onEliminarEjercicio,
     puedeEliminarBloque,
-  }: DroppableBloqueProps) {
-    const { setNodeRef, isOver } = useDroppable({
-      id,
-    });
-
+  }: BloqueProps) {
     return (
-      <div
-        ref={setNodeRef}
-        className={`bg-gray-50 rounded-lg p-3 sm:p-4 ${isOver ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
-      >
+      <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
                       <input
                         type="text"
@@ -1182,16 +1048,10 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
               </div>
 
             {dias.map((dia, diaIndex) => {
-              const diaId = `dia-${diaIndex}`;
-              const { setNodeRef: setDiaNodeRef, isOver: isDiaOver } = useDroppable({
-                id: diaId,
-              });
-              
               return (
               <div 
                 key={diaIndex} 
-                ref={setDiaNodeRef}
-                className={`mb-4 sm:mb-6 border border-gray-200 rounded-lg p-3 sm:p-4 ${isDiaOver ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
+                className="mb-4 sm:mb-6 border border-gray-200 rounded-lg p-3 sm:p-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
                   <input
@@ -1219,13 +1079,11 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
               {/* Bloques */}
               <div className="space-y-4">
                 {dia.bloques.map((bloque, bloqueIndex) => {
-                  const bloqueId = `bloque-${diaIndex}-${bloqueIndex}`;
                   const ejercicioIds = bloque.ejercicios.map((_, idx) => `ejercicio-${diaIndex}-${bloqueIndex}-${idx}`);
                   
                         return (
-                    <DroppableBloque
+                    <BloqueComponent
                       key={bloqueIndex}
-                      id={bloqueId}
                       bloque={bloque}
                       bloqueIndex={bloqueIndex}
                       diaIndex={diaIndex}
@@ -1247,10 +1105,13 @@ export default function CrearRutinaPage({ params }: { params: Promise<{ id: stri
                       );
                       })}
                 
-                <DroppableAgregarBloque
-                  diaIndex={diaIndex}
-                  onAgregarBloque={() => agregarBloque(diaIndex)}
-                />
+                <button
+                  type="button"
+                  onClick={() => agregarBloque(diaIndex)}
+                  className="w-full px-4 py-2 text-sm rounded-md transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300"
+                >
+                  + Agregar Bloque
+                </button>
         </div>
             </div>
             );
